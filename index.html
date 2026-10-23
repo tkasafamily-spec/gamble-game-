@@ -2324,7 +2324,7 @@ const PIT_JUMP={t0:3.0,t1:4.25};
 
 /* ---- you, the mirror and the dress-up closet ---- */
 let meAvatar=null, mirror=null; const lobbyTargets=[];
-function lookOf(){ const L=state.look||{}; return {skin:state.skin||0xb5e04a,shirt:L.shirt!=null?L.shirt:0x3dd6ff,pants:L.pants!=null?L.pants:0x1c1c22,feat:L.feat!=null?L.feat:0,hat:L.hat||'none',style:STYLE_KINDS.includes(L.style)?L.style:'tee'}; }
+function lookOf(){ const L=state.look||{}; return {skin:state.skin||0xb5e04a,shirt:L.shirt!=null?L.shirt:0x3dd6ff,pants:L.pants!=null?L.pants:0x1c1c22,feat:L.feat!=null?L.feat:-1,hat:L.hat||'none',style:STYLE_KINDS.includes(L.style)?L.style:'tee'}; }
 function rebuildMe(){
   if(!scene) return;
   if(meAvatar) scene.remove(meAvatar);
@@ -4137,7 +4137,7 @@ function buildDecor(){
 }
 
 /* --- people --- */
-const SKINS=[0x7fd6c2,0xb59cff,0x8ec9ff,0xffb48a,0xffd86b,0xff8fa8,0x9be37a,0x6fb6ff,0xf7a0e0,0xc8e86a,0xf1c9a5,0xa86f4c];
+const SKINS=[0x2f8cf5,0xf53c9a,0x8a4dff,0xff8a1f,0xffd23a,0x3ccf5a,0xff4a4a,0x2fd6c8,0xb5e04a,0x5ac8ff,0xff7ac8,0xa86ff5];
 const HAIRS=[0x2a1b3d,0xff5a8a,0x3dd6ff,0xffe14a,0x1b1410,0x8a5aff,0xff8a2a,0xffffff];
 const pickSkin=()=>SKINS[randInt(SKINS.length)], pickHair=()=>HAIRS[randInt(HAIRS.length)];
 const idlers=[], walkers=[];
@@ -4280,76 +4280,94 @@ function wrapGeo(gm,R){ const p=gm.attributes.position; for(let i=0;i<p.count;i+
 function shapeGeo(pts){ const sh=new THREE.Shape(); pts.forEach(([x,y],i)=>i?sh.lineTo(x,y):sh.moveTo(x,y)); sh.closePath(); return new THREE.ShapeGeometry(sh,6); }
 const beanMats={}; function beanMat(c){ if(!beanMats[c]){ const m=smooth({color:c,specular:0x5a5a5a,shininess:60}); m.userData.keepShine=true; beanMats[c]=m; } return beanMats[c]; }
 const beanLine=new THREE.MeshBasicMaterial({color:0x1a0f26,side:THREE.BackSide});
+// characters copied from the cover: soft rounded-square blobs, black oval eyes, big D smile with a tongue, stubby arms, sticker outline
+const BLOB={W:0.66,H:1.14,D:0.54,E1:0.5,E2:0.62,LEG:0.15};
+const BLOB_CY=BLOB.LEG+BLOB.H/2, BLOB_TOP=BLOB.LEG+BLOB.H;
+const spw=(v,e)=>Math.sign(v)*Math.pow(Math.abs(v),e);
+function blobGeo(key,W,H,D,y0n,y1n){
+  return geo(key,()=>{ const th=y=>Math.acos(Math.max(-1,Math.min(1,Math.sign(y)*Math.pow(Math.abs(y),1/BLOB.E2))));
+    const t0=y1n==null?0:th(y1n), t1=y0n==null?Math.PI:th(y0n);
+    const g=new THREE.SphereGeometry(1,60,44,0,TAU,t0,t1-t0), p=g.attributes.position;
+    for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i); p.setXYZ(i,spw(x,BLOB.E1)*W/2,spw(y,BLOB.E2)*H/2,spw(z,BLOB.E1)*D/2); }
+    g.computeVertexNormals(); return g; });
+}
+// front of the blob at height y (local), used to stick faces and clothes on
+function blobFrontZ(x,y,pad){ const yn=Math.min(0.999,Math.abs((y-BLOB_CY)/(BLOB.H/2))), xn=Math.min(0.999,Math.abs(x/(BLOB.W/2)));
+  const fy=Math.pow(Math.max(0,1-Math.pow(yn,2/BLOB.E2)),BLOB.E2/2), fx=Math.pow(Math.max(0,1-Math.pow(xn,2/BLOB.E1)),BLOB.E1/2); return BLOB.D/2*fx*fy+(pad||0); }
+function decalGeo(key,pts,cy,pad){ return geo(key,()=>{ const gm=shapeGeo(pts), p=gm.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i); p.setZ(i,blobFrontZ(x,cy+y,pad)); } p.needsUpdate=true; gm.computeVertexNormals(); return gm; }); }
+function capsuleGeo(key,r,len){ return geo(key,()=>{ const pts=[]; for(let k=0;k<=8;k++){ const a=-Math.PI/2+Math.PI/2*k/8; pts.push(new THREE.Vector2(Math.cos(a)*r,-len+Math.sin(a)*r)); } for(let k=0;k<=8;k++){ const a=Math.PI/2*k/8; pts.push(new THREE.Vector2(Math.cos(a)*r,Math.sin(a)*r)); } pts[0].x=0; pts[pts.length-1].x=0; const g=new THREE.LatheGeometry(pts,24); g.computeVertexNormals(); return g; }); }
 function person(o){
   const g=new THREE.Group(), legs=[], arms=[];
   const style=o.vest?'staff':(STYLE_KINDS.includes(o.style)?o.style:'tee'), shirtCol=o.shirt!=null?o.shirt:0x3dd6ff;
-  const skinC=o.skin||pickSkin(), skin=beanMat(skinC), dark=lamb(0x141016), white=lamb(0xffffff);
-  const bodyG=geo('beanBody2',()=>{ const pts=[]; for(let i=0;i<=40;i++){ const y=BEAN_Y+(BEAN[BEAN.length-1][1])*i/40; pts.push(new THREE.Vector2(i===0?0:i===40?0:beanR(y),y-BEAN_Y)); } return new THREE.LatheGeometry(pts,56); });
-  mesh(bodyG,skin,0,BEAN_Y,0,g);
-  const ol=mesh(bodyG,beanLine,0,BEAN_Y-0.012,0,g); ol.scale.set(1.045,1.02,1.045);
-  // pants + shirt bands
-  const pantsM=beanMat(o.pants!=null?o.pants:0x1c1c22);
-  mesh(beanBand('bnPants',BEAN_Y,BEAN_Y+0.2,0.008),pantsM,0,0,0,g);
-  mesh(geo('bnPantsBot',()=>new THREE.CircleGeometry(0.16,20)),pantsM,0,BEAN_Y-0.001,0,g).rotation.x=Math.PI/2;
+  const skinC=o.skin||pickSkin(), skin=beanMat(skinC), dark=beanMat(0x141016);
+  const {W,H,D}=BLOB;
+  mesh(blobGeo('blobBody',W,H,D),skin,0,BLOB_CY,0,g);
+  const ol=mesh(blobGeo('blobBody',W,H,D),beanLine,0,BLOB_CY,0,g); ol.scale.set(1.05,1.03,1.06);
+  // clothes: pants on the bottom, shirt band above
+  const pantsC=o.pants!=null?o.pants:0x1c1c22, pantsM=beanMat(pantsC), P=0.014;
+  const yn=y=>(y-BLOB_CY)/(BLOB.H/2+P);
+  mesh(blobGeo('blobPants',W+2*P,H+2*P,D+2*P,-1,yn(BLOB.LEG+0.17)),pantsM,0,BLOB_CY,0,g);
   const shirtM=style==='staff'?beanMat(0xf4f1ea):(style==='hawaii'||style==='stripes')?patternMat(style,shirtCol):beanMat(style==='tux'?0x15151a:shirtCol);
-  mesh(beanBand('bnShirt',BEAN_Y+0.18,BEAN_Y+0.6,0.014),shirtM,0,0,0,g);
-  if(style==='staff'&&o.vest) mesh(beanBand('bnVest',BEAN_Y+0.2,BEAN_Y+0.54,0.024),beanMat(o.vest),0,0,0,g);
-  dressBean(g,style,shirtCol,o);
-  // legs
-  [-0.12,0.12].forEach(x=>{ const L=new THREE.Group(); L.position.set(x,0.17,0); const lg=new THREE.Mesh(geo('bnLeg2',()=>{ const c=new THREE.CylinderGeometry(0.075,0.07,0.15,18); c.translate(0,-0.075,0); return c; }),pantsM); L.add(lg);
-    const f=new THREE.Mesh(geo('bnFoot2',()=>new THREE.SphereGeometry(0.085,18,12)),beanMat(0x141016)); f.scale.set(1.0,0.6,1.35); f.position.set(0,-0.15,0.03); L.add(f); g.add(L); legs.push(L); });
-  // face
-  const fy=BEAN_Y+0.83, R=beanR(fy);
-  [-1,1].forEach(sd=>{ const x=sd*0.1, z=Math.sqrt(R*R-x*x);
-    const e=mesh(geo('bnEye2',()=>new THREE.SphereGeometry(0.05,22,16)),beanMat(0x0d0a12),x,fy+0.06,z-0.012,g); e.scale.set(0.95,1.55,0.55);
-    mesh(geo('bnShine2',()=>new THREE.SphereGeometry(0.016,12,10)),new THREE.MeshBasicMaterial({color:0xffffff}),x-0.014,fy+0.1,z+0.012,g);
-    const bl=mesh(geo('bnBlush2',()=>new THREE.SphereGeometry(0.04,16,12)),beanMat(0xff7aa0),sd*0.19,fy-0.06,Math.sqrt(R*R-0.036)-0.012,g); bl.scale.set(1,0.55,0.3); });
-  const mR=beanR(fy-0.17)+0.02;
-  const mouth=new THREE.Mesh(geo('bnMouthW',()=>{ const pts=[]; for(let k=0;k<=16;k++){ const a=Math.PI*k/16; pts.push([Math.cos(a)*0.13,-Math.sin(a)*0.12]); } const gm=shapeGeo(pts); return wrapGeo(gm,mR); }),lamb(0x2a0d14)); mouth.position.set(0,fy-0.04,0); g.add(mouth);
-  const tongue=new THREE.Mesh(geo('bnTongue',()=>{ const pts=[]; for(let k=0;k<=12;k++){ const a=Math.PI*k/12; pts.push([Math.cos(a)*0.072,-0.118+Math.sin(a)*0.055]); } return wrapGeo(shapeGeo(pts),mR+0.004); }),lamb(0xff6f9a)); tongue.position.set(0,fy-0.04,0); g.add(tongue);
-  // head bits sit on the dome
-  const head=new THREE.Group(); head.position.set(0,BEAN_Y+0.92,0); g.add(head);
-  const acc=lamb(o.hair||pickHair()), feat=o.bald?-1:(o.feat!=null?o.feat:randInt(4)), G=personGeos();
-  if(feat===0) [-1,1].forEach(sx=>{ mesh(G.cear,skin,sx*0.15,0.2,0,head).scale.set(1,1,0.55); mesh(G.cear,lamb(0xff9ab8),sx*0.15,0.2,0.03,head).scale.set(0.55,0.55,0.35); });
-  else if(feat===1){ mesh(G.stalk,dark,0,0.3,0,head); mesh(G.knob,acc,0,0.39,0,head); }
-  else if(feat===2) [-1,1].forEach(sx=>{ const h=mesh(G.horn,lamb(0xfff1d6),sx*0.12,0.25,0,head); h.rotation.z=-sx*0.35; });
-  else if(feat===3) mesh(G.tuft,acc,0.02,0.22,-0.02,head).scale.set(1.1,0.55,1);
+  const sy0=BLOB.LEG+0.15, sy1=BLOB.LEG+0.56;
+  mesh(blobGeo('blobShirt',W+2*P*1.6,H+2*P*1.6,D+2*P*1.6,(sy0-BLOB_CY)/(BLOB.H/2+P*1.6),(sy1-BLOB_CY)/(BLOB.H/2+P*1.6)),shirtM,0,BLOB_CY,0,g);
+  if(style==='staff'&&o.vest){ const VP=P*2.6; mesh(blobGeo('blobVest',W+2*VP,H+2*VP,D+2*VP,(sy0+0.03-BLOB_CY)/(BLOB.H/2+VP),(sy1-0.06-BLOB_CY)/(BLOB.H/2+VP)),beanMat(o.vest),0,BLOB_CY,0,g); }
+  dressBlob(g,style,shirtCol,sy1);
+  // stubby legs
+  [-0.15,0.15].forEach(x=>{ const L=new THREE.Group(); L.position.set(x,BLOB.LEG+0.04,0); const lg=new THREE.Mesh(capsuleGeo('blobLeg',0.085,0.1),pantsM); L.add(lg);
+    const f=new THREE.Mesh(geo('blobFoot',()=>new THREE.SphereGeometry(0.09,20,14)),dark); f.scale.set(1.05,0.62,1.35); f.position.set(0,-0.15,0.035); L.add(f); g.add(L); legs.push(L); });
+  // face: plain black ovals + big D smile with a pink tongue
+  const ey=BLOB_CY+0.25;
+  [-1,1].forEach(sd=>{ const x=sd*0.115; const e=mesh(geo('blobEye',()=>new THREE.SphereGeometry(0.05,24,18)),beanMat(0x0b090e),x,ey,blobFrontZ(x,ey,-0.012),g); e.scale.set(0.82,1.42,0.45); });
+  const my=BLOB_CY+0.16, MW=0.14, MD=0.145;
+  const mouthPts=[[-MW,0.004],[MW,0.004]].concat(Array.from({length:19},(_,k)=>{ const a=Math.PI*k/18; return [Math.cos(a)*MW,-Math.sin(a)*MD]; }));
+  const mouth=new THREE.Mesh(decalGeo('blobMouth2',mouthPts,my,0.006),beanMat(0x2a0b12)); mouth.position.y=my; g.add(mouth);
+  const tPts=Array.from({length:15},(_,k)=>{ const a=Math.PI*k/14; return [Math.cos(a)*0.092,-MD+0.006+Math.sin(a)*0.082]; });
+  const tongue=new THREE.Mesh(decalGeo('blobTongue2',tPts,my,0.01),beanMat(0xff6fa8)); tongue.position.y=my; g.add(tongue);
+  // head bits sit on top
+  const head=new THREE.Group(); head.position.set(0,BLOB_TOP-0.2,0); head.scale.setScalar(1.22); g.add(head);
+  const acc=lamb(o.hair||pickHair()), feat=o.bald?-1:(o.feat!=null?o.feat:-1), G=personGeos();
+  if(feat===0) [-1,1].forEach(sx=>{ mesh(G.cear,skin,sx*0.16,0.2,0,head).scale.set(1,1,0.55); mesh(G.cear,beanMat(0xff9ab8),sx*0.16,0.2,0.03,head).scale.set(0.55,0.55,0.35); });
+  else if(feat===1){ mesh(G.stalk,dark,0,0.27,0,head); mesh(G.knob,acc,0,0.36,0,head); }
+  else if(feat===2) [-1,1].forEach(sx=>{ const h=mesh(G.horn,beanMat(0xfff1d6),sx*0.13,0.24,0,head); h.rotation.z=-sx*0.35; });
+  else if(feat===3) mesh(G.tuft,acc,0.02,0.2,-0.02,head).scale.set(1.1,0.55,1);
   if(o.hat&&o.hat!=='none') addHat(head,o.hat,o.hatCol||shirtCol);
-  // arms
-  const longSl=style==='tux'||style==='suit'||style==='hoodie'||style==='staff', armM=longSl?shirtM:skin;
-  [-1,1].forEach(sd=>{ const A=new THREE.Group(); A.position.set(sd*0.3,BEAN_Y+0.55,0); const ar=new THREE.Mesh(geo('bnArm2',()=>new THREE.CylinderGeometry(0.06,0.055,0.24,18)),armM); ar.position.y=-0.12; A.add(ar);
-    const h=new THREE.Mesh(geo('bnMitt2',()=>new THREE.SphereGeometry(0.078,20,14)),o.bow?beanMat(0xffffff):skin); h.position.y=-0.27; A.add(h);
-    if(style==='tux'||style==='suit'||style==='hoodie'||style==='staff'){ const cf=new THREE.Mesh(geo('bnCuff',()=>new THREE.CylinderGeometry(0.064,0.064,0.04,10)),style==='hoodie'?lamb(shadeHex(shirtCol,0.72)):lamb(0xf6f3ec)); cf.position.y=-0.225; A.add(cf); }
-    A.rotation.z=sd*0.42; g.add(A); arms.push(A); });
+  // thick stubby arms with rounded ends, sticking out like the cover
+  const longSl=style==='tux'||style==='suit'||style==='hoodie'||style==='staff';
+  [-1,1].forEach(sd=>{ const A=new THREE.Group(); A.position.set(sd*(W/2-0.04),BLOB.LEG+0.5,0); g.add(A);
+    const arm=new THREE.Mesh(capsuleGeo('blobArm',0.078,0.3),longSl?shirtM:skin); A.add(arm);
+    const aol=new THREE.Mesh(capsuleGeo('blobArm',0.078,0.3),beanLine); aol.scale.set(1.12,1.04,1.12); A.add(aol);
+    if(longSl){ const tip=new THREE.Mesh(geo('blobTip',()=>new THREE.SphereGeometry(0.079,20,14,0,TAU,Math.PI/2,Math.PI/2)),o.bow?beanMat(0xffffff):skin); tip.position.y=-0.3; A.add(tip);
+      const cf=new THREE.Mesh(geo('blobCuff',()=>new THREE.CylinderGeometry(0.083,0.083,0.04,20)),style==='hoodie'?beanMat(shadeHex(shirtCol,0.72)):beanMat(0xf6f3ec)); cf.position.y=-0.28; A.add(cf); }
+    else { const sl=new THREE.Mesh(geo('blobSleeve',()=>new THREE.CylinderGeometry(0.086,0.086,0.11,20)),shirtM); sl.position.y=-0.04; A.add(sl); }
+    A.rotation.z=sd*1.1; arms.push(A); });
   g.scale.setScalar((o.h||1.4)/1.5);
   g.userData={legs,arms,phase:Math.random()*TAU};
   return g;
 }
-function dressBean(g,style,col,o){
-  const white=lamb(0xf6f3ec), black=lamb(0x0d0d10), dk=lamb(shadeHex(col,0.72)), top=BEAN_Y+0.6, Rt=beanR(top-0.1)+0.018;
-  const W=(key,pts,mat,y,dz)=>{ const m=new THREE.Mesh(geo(key,()=>wrapGeo(shapeGeo(pts),Rt+(dz||0))),mat); m.position.y=y; g.add(m); return m; };
-  if(style==='staff'){ W('bnStaffV',[[-0.08,0],[0.08,0],[0,-0.24]],white,top-0.06,0.012); box(0.11,0.045,0.03,lamb(0xb3202b),0,top-0.04,Rt+0.02,g); return; }
+function dressBlob(g,style,col,top){
+  const white=beanMat(0xf6f3ec), black=beanMat(0x0d0d10), dk=beanMat(shadeHex(col,0.72));
+  const D_=(key,pts,mat,pad)=>{ const m=new THREE.Mesh(decalGeo(key,pts,top,pad),mat); m.position.y=top; g.add(m); return m; };
+  const fz=(x,y,pad)=>blobFrontZ(x,y,pad);
+  if(style==='staff'){ D_('blStaffV',[[-0.09,0],[0.09,0],[0,-0.24]],white,0.05); const b=box(0.12,0.05,0.03,beanMat(0xb3202b),0,top-0.03,fz(0,top-0.03,0.055),g); return; }
   if(style==='tux'||style==='suit'){
-    W('bnV',[[-0.1,0],[0.1,0],[0,-0.28]],white,top,0.002);
-    const lap=style==='tux'?lamb(0x34343f):dk;
-    W('bnLapL',[[-0.13,0],[-0.1,0],[0,-0.28],[-0.02,-0.3]],lap,top,0.004); W('bnLapR',[[0.1,0],[0.13,0],[0.02,-0.3],[0,-0.28]],lap,top,0.004);
-    if(style==='tux'){ [-1,1].forEach(sd=>{ const w=box(0.06,0.045,0.02,black,sd*0.032,top-0.03,Rt+0.012,g); w.rotation.z=sd*0.25; }); box(0.022,0.03,0.024,black,0,top-0.03,Rt+0.016,g);
-      [0.1,0.16,0.22].forEach(d=>mesh(geo('bnStud',()=>new THREE.SphereGeometry(0.009,6,4)),black,0,top-d,Rt+0.006,g));
-      box(0.05,0.028,0.01,lamb(col),0.17,top-0.12,Rt-0.004,g); }
-    else { const tc=lamb(tieCol(col)); W('bnTie',[[-0.022,-0.02],[0.022,-0.02],[0.028,-0.22],[0,-0.26],[-0.028,-0.22]],tc,top,0.006); box(0.045,0.035,0.02,tc,0,top-0.02,Rt+0.01,g);
-      box(0.05,0.024,0.01,white,0.17,top-0.12,Rt-0.004,g); }
-    mesh(geo('bnBtnG',()=>new THREE.SphereGeometry(0.012,6,4)),M.gold,0,top-0.33,Rt+0.004,g);
+    D_('blV',[[-0.11,0],[0.11,0],[0,-0.3]],white,0.026);
+    const lap=style==='tux'?beanMat(0x34343f):dk;
+    D_('blLapL',[[-0.145,0],[-0.11,0],[0,-0.3],[-0.025,-0.325]],lap,0.03); D_('blLapR',[[0.11,0],[0.145,0],[0.025,-0.325],[0,-0.3]],lap,0.03);
+    if(style==='tux'){ [-1,1].forEach(sd=>{ const w=box(0.065,0.05,0.022,black,sd*0.035,top-0.035,fz(0,top,0.04),g); w.rotation.z=sd*0.25; }); box(0.025,0.032,0.026,black,0,top-0.035,fz(0,top,0.045),g);
+      [0.11,0.17,0.23].forEach(d=>mesh(geo('blStud',()=>new THREE.SphereGeometry(0.01,8,6)),black,0,top-d,fz(0,top-d,0.03),g));
+      box(0.055,0.03,0.012,beanMat(col),0.2,top-0.12,fz(0.2,top-0.12,0.03),g); }
+    else { const tc=beanMat(tieCol(col)); D_('blTie',[[-0.024,-0.02],[0.024,-0.02],[0.03,-0.24],[0,-0.285],[-0.03,-0.24]],tc,0.034); box(0.05,0.038,0.022,tc,0,top-0.02,fz(0,top,0.042),g); box(0.055,0.026,0.012,white,0.2,top-0.12,fz(0.2,top-0.12,0.03),g); }
+    mesh(geo('blBtnG',()=>new THREE.SphereGeometry(0.013,8,6)),M.gold,0,top-0.34,fz(0,top-0.34,0.032),g);
   } else if(style==='hoodie'){
-    const hood=mesh(geo('bnHood',()=>new THREE.TorusGeometry(0.28,0.05,6,24)),dk,0,top+0.01,-0.02,g); hood.rotation.x=Math.PI/2;
-    const back=mesh(geo('bnHoodB',()=>new THREE.SphereGeometry(0.14,10,8)),dk,0,top+0.04,-0.27,g); back.scale.set(1.4,0.7,0.6);
-    W('bnPouch',[[-0.13,-0.3],[0.13,-0.3],[0.1,-0.42],[-0.1,-0.42]],dk,top,0.004);
-    [-1,1].forEach(sd=>{ cyl(0.007,0.007,0.13,4,white,sd*0.05,top-0.08,Rt+0.01,g); mesh(geo('bnAglet',()=>new THREE.SphereGeometry(0.011,6,4)),white,sd*0.05,top-0.145,Rt+0.01,g); });
+    const hood=mesh(geo('blHood',()=>new THREE.TorusGeometry(0.3,0.055,8,28)),dk,0,top+0.015,-0.03,g); hood.rotation.x=Math.PI/2; hood.scale.set(1.08,0.92,1);
+    D_('blPouch',[[-0.15,-0.26],[0.15,-0.26],[0.12,-0.38],[-0.12,-0.38]],dk,0.03);
+    [-1,1].forEach(sd=>{ cyl(0.008,0.008,0.14,6,white,sd*0.055,top-0.08,fz(0,top-0.08,0.036),g); mesh(geo('blAglet',()=>new THREE.SphereGeometry(0.012,8,6)),white,sd*0.055,top-0.15,fz(0,top-0.15,0.036),g); });
   } else if(style==='hawaii'){
-    W('bnColL',[[-0.12,0.01],[-0.01,0.01],[-0.06,-0.08]],white,top,0.004); W('bnColR',[[0.01,0.01],[0.12,0.01],[0.06,-0.08]],white,top,0.004);
-    [0.12,0.2,0.28,0.36].forEach(d=>mesh(geo('bnBtnW',()=>new THREE.SphereGeometry(0.011,6,4)),white,0,top-d,Rt+0.004,g));
+    D_('blColL',[[-0.13,0.012],[-0.01,0.012],[-0.065,-0.09]],white,0.03); D_('blColR',[[0.01,0.012],[0.13,0.012],[0.065,-0.09]],white,0.03);
+    [0.12,0.2,0.28,0.36].forEach(d=>mesh(geo('blBtnW',()=>new THREE.SphereGeometry(0.012,8,6)),white,0,top-d,fz(0,top-d,0.03),g));
   } else {
-    const nk=mesh(geo('bnNeck',()=>new THREE.TorusGeometry(beanR(top)+0.012,0.018,5,28)),style==='stripes'?lamb(0x15151a):dk,0,top,0,g); nk.rotation.x=Math.PI/2;
-    if(style==='tee'){ const st=new THREE.Mesh(geo('bnStar',()=>{ const pts=[]; for(let k=0;k<10;k++){ const a=Math.PI/2+k*Math.PI/5, r=k%2?0.025:0.06; pts.push([Math.cos(a)*r,Math.sin(a)*r]); } return wrapGeo(shapeGeo(pts),Rt+0.004); }),white); st.position.set(0,top-0.24,0); g.add(st); }
+    D_('blNeck',Array.from({length:13},(_,k)=>{ const a=Math.PI*k/12; return [Math.cos(a)*0.13,-Math.sin(a)*0.06]; }).concat(Array.from({length:13},(_,k)=>{ const a=Math.PI-Math.PI*k/12; return [Math.cos(a)*0.1,-Math.sin(a)*0.035]; })),style==='stripes'?black:dk,0.028);
+    if(style==='tee') D_('blStar',Array.from({length:10},(_,k)=>{ const a=Math.PI/2+k*Math.PI/5, r=k%2?0.03:0.07; return [Math.cos(a)*r,-0.24+Math.sin(a)*r]; }),white,0.028);
   }
 }
 function dressBody(g,style,col){
@@ -5444,7 +5462,7 @@ $('acctBtn').addEventListener('click',()=>{
   if(playerName()){ const n=playerName(); users.current=null; saveUsers(); applyState(loadState(readSave())); toast('Signed out of '+n+'. Now playing as Guest.'); }
   $('quitBtn').click(); showJoin();
 });
-const SKIN_CHOICES=[0xb5e04a,0x7fd6c2,0xb59cff,0x8ec9ff,0xffb48a,0xffd86b,0xff8fa8,0x9be37a,0xf1c9a5,0xa86f4c];
+const SKIN_CHOICES=[0x2f8cf5,0xf53c9a,0xb5e04a,0x8a4dff,0xff8a1f,0xffd23a,0x3ccf5a,0xff4a4a,0x2fd6c8,0xf2f2f2];
 function renderSwatches(){
   const box=$('skinSwatches'); box.textContent='';
   SKIN_CHOICES.forEach(c=>{ const b=document.createElement('button'); b.type='button'; b.className='sw'; const hex='#'+c.toString(16).padStart(6,'0'); b.style.background=hex; b.setAttribute('aria-label','Colour '+hex); b.setAttribute('aria-pressed',String((state.skin||0xb5e04a)===c));
