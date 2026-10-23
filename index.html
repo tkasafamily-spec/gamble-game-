@@ -316,6 +316,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 .dc-total{display:flex;flex-direction:column;align-items:center;gap:4px}
 .dc-total b{font:400 54px/1 var(--font-display);color:var(--brass-hi)}
 .dc .spots{grid-template-columns:repeat(4,minmax(0,1fr))}
+.dc .spots.ducks{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:560px){.dc .spots{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .dc-hist{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .dc-hist span.t{min-width:30px;height:30px;padding:0 6px;border-radius:8px;display:grid;place-items:center;font:700 13px/1 var(--font-ui);background:var(--black);box-shadow:inset 0 0 0 1px var(--line);font-variant-numeric:tabular-nums}
@@ -2618,6 +2619,7 @@ const GAMES={
   bigsix:{title:'Big Six Wheel',build:buildBigSix},
   dice:{title:'Over / Under 7',build:buildDice},
   coinflip:{title:'Coin Flip',build:buildCoinFlip},
+  duckrace:{title:'Duck Race',build:buildDuckRace},
   plinko:{title:'Plinko',build:buildPlinko},
   hilo:{title:'Hi-Lo',build:buildHiLo},
   crash:{title:'Crash',build:buildCrash},
@@ -3374,7 +3376,7 @@ function slotMachine(p){
   mesh(geo('slScr',()=>new THREE.PlaneGeometry(1.1,0.78)),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}),0,1.8,0.275,g);
   [-0.77,0.77].forEach(x=>{ cyl(0.075,0.085,1.5,12,gold,x,1.75,0.17,g); cyl(0.11,0.11,0.09,12,body,x,2.52,0.17,g); cyl(0.11,0.11,0.09,12,body,x,1.03,0.17,g); cyl(0.115,0.115,0.04,12,body,x,1.75,0.17,g); });
   box(1.52,0.28,0.82,dark,0,2.6,-0.12,g);
-  mesh(geo('slName',()=>new THREE.PlaneGeometry(1.44,0.26)),new THREE.MeshBasicMaterial({map:canvasTex(512,96,neonDraw(T.name,{font:'800 52px '+UI,color:T.text,glow:T.glow,spacing:'3px'}),{text:true}),transparent:true,toneMapped:false}),0,2.6,0.29,g);
+  mesh(geo('slName',()=>new THREE.PlaneGeometry(1.44,0.26)),new THREE.MeshBasicMaterial({map:canvasTex(512,96,neonDraw(T.name,{font:'800 52px '+UI,color:T.text,glow:T.glow,spacing:'3px'}),{text:true}),transparent:true,toneMapped:false}),0,2.6,0.304,g);
   mesh(geo('slPyr',()=>new THREE.ConeGeometry(0.8,0.72,4,1)),gold,0,3.1,-0.14,g).rotation.y=Math.PI/4;
   if(!slotEyeTex) slotEyeTex=canvasTex(256,160,(gg,w,h)=>{ gg.clearRect(0,0,w,h); drawSymbolFlat(gg,'eye',w/2,h/2+8,62); },{text:true});
   const em=mesh(geo('slEye',()=>new THREE.PlaneGeometry(0.34,0.21)),new THREE.MeshBasicMaterial({map:slotEyeTex,transparent:true,toneMapped:false}),0,3.0,0.205,g); em.rotation.x=-0.66;
@@ -3654,7 +3656,7 @@ function teardownSeat3d(){
   if(!activeStation) return;
   if(seat3d==='roulette'){ syncRlChips(activeStation.ref,{}); if(rlHover&&rlHover.parent) rlHover.parent.remove(rlHover); }
 }
-const TABLE_TYPES={roulette:1,blackjack:1,dice:1,bigsix:1,slots:1,coinflip:1,plinko:1,hilo:1,crash:1,mines:1};
+const TABLE_TYPES={roulette:1,blackjack:1,dice:1,bigsix:1,slots:1,coinflip:1,duckrace:1,plinko:1,hilo:1,crash:1,mines:1};
 let tableMount=null;
 function domLabel(sel,prefix){ const el=$('tableBody').querySelector(sel); return el?prefix+el.getAttribute('aria-label'):null; }
 function showHoverRect(r,y){ if(!rlHover) return; if(!r){ rlHover.visible=false; return; } rlHover.visible=true; rlHover.position.set(r.lx,y||0.864,r.lz); rlHover.scale.set(r.sx,r.sz,1); }
@@ -3810,7 +3812,8 @@ function mountTable(st){
   if(st.ref){ st.ref.lastBet=null; st.ref.lastTot=null; }
   { clickTargets=(st.ref.targets||[]).slice(); if(st.ref.g&&rlHover){ st.ref.g.add(rlHover); rlHover.visible=false; } }
   syncChipButtons(); kioskFresh=true; redrawKiosk();
-  $('tableName').textContent=g.title; $('tableBar').hidden=false;
+  $('tableName').textContent=g.title; $('tableBar').hidden=true;
+  { const m0=root.querySelector('.msg'); lastSeatMsg=m0?m0.textContent:''; }
 }
 function unmountTable(){
   if(!tableMount) return; const st=tableMount.st;
@@ -3847,6 +3850,7 @@ function quickSpin(){
   else if(t==='bigsix') clickDom('[data-a="spin"]');
   else if(t==='blackjack') clickDom('[data-a="deal"]');
   else if(t==='coinflip') clickDom('[data-a="flip"]');
+  else if(t==='duckrace') clickDom('[data-a="race"]');
   else if(t==='plinko') clickDom('[data-a="drop"]');
   else if(t==='hilo') clickDom('[data-a="deal"]');
   else if(t==='crash'){ if(!clickDom('[data-a="cashout"]')) clickDom('[data-a="launch"]'); }
@@ -3854,7 +3858,8 @@ function quickSpin(){
 }
 function seatTick(){
   const root=$('tableBody'), m=root.querySelector('.msg');
-  if(m&&m.textContent!==lastSeatMsg){ lastSeatMsg=m.textContent; $('tableMsg').textContent=lastSeatMsg; }
+  if(m&&m.textContent!==lastSeatMsg){ lastSeatMsg=m.textContent; $('tableMsg').textContent=lastSeatMsg;
+    if(/\$/.test(lastSeatMsg)) toast(lastSeatMsg,/you win|you won|cashed out/i.test(lastSeatMsg)?'win':/takes|lose|lost|bust|crash|house/i.test(lastSeatMsg)?'bad':''); }
   const st=activeStation; if(!st||!seatApi) return;
   if(seatApi.bets&&st.type!=='slots'){ const b=seatApi.bets(), sj=JSON.stringify(b); if(sj!==lastBetsStr){ lastBetsStr=sj; syncStacks(st.ref,b); } }
   if(st.type==='blackjack'){
@@ -4139,6 +4144,148 @@ function buildHands(){
   });
   tickers.push(t=>{ [handL,handR].forEach(h=>{ if(!h) return; const s=h.userData.s; h.rotation.z=h.userData.rot.z+Math.sin(t*0.0016+s)*0.05; h.rotation.x=h.userData.rot.x+Math.sin(t*0.0021+s*2)*0.035; }); });
 }
+/* ---- Duck Race ---- */
+const DUCK_COLS=['#ffd23a','#ff4a4a','#3d8bff','#3ee07a','#b06bff','#ff8a2a'];
+const DUCK_NAMES=['Sunny','Cherry','Splash','Pickle','Grape','Mango'];
+const DUCK_PAYS=[3,4,5,7,10,15];
+function newDuckOdds(){ const a=DUCK_PAYS.slice(); for(let i=a.length-1;i>0;i--){ const j=randInt(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const TPL_DR=`
+<div class="dc">
+  <div class="spots ducks" data-spots></div>
+  <p class="msg" aria-live="polite">Type your bet on the keypad, pick a duck, then press Race.</p>
+  <div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="clear">Clear</button><button class="btn" type="button" data-a="rebet">Rebet</button><button class="spin" type="button" data-a="race">Race</button></div></div>
+</div>`;
+function buildDuckRace(root,hooks){
+  const H=(hooks&&hooks.table)||{};
+  root.innerHTML=TPL_DR;
+  const q=s=>root.querySelector(s), btn=k=>q('[data-a="'+k+'"]'), msgEl=q('.msg'), spotsEl=q('[data-spots]');
+  const say=t=>{ msgEl.textContent=t; };
+  chipRack(q('[data-chips]'),true);
+  const book=betBook(); let racing=false, alive=true, last=null;
+  let odds=Array.isArray(H.odds)?H.odds.slice():newDuckOdds();
+  const spotEls=new Map();
+  for(let i=0;i<6;i++){ const k='d'+(i+1), b=document.createElement('button'); b.type='button'; b.className='spot'; b.style.boxShadow='inset 0 -6px 0 '+DUCK_COLS[i];
+    b.addEventListener('click',()=>{ if(racing) return; ensureAudio(); if(state.money<=0){ say('No cash left to bet.'); return; } if(book.place(k)){ sfx.chip(); sync(); } });
+    spotsEl.appendChild(b); spotEls.set(k,b); }
+  function label(){ spotEls.forEach((b,k)=>{ const i=+k.slice(1)-1; b.innerHTML='<span class="big">'+(i+1)+' · '+DUCK_NAMES[i]+'</span><small>pays '+odds[i]+'×</small>'; b.setAttribute('aria-label','duck '+(i+1)+' ('+DUCK_NAMES[i]+'), pays '+odds[i]+'×'); }); }
+  function sync(){ for(const [k,b] of spotEls){ stakeBadge(b,book.bets[k]||0,true); b.disabled=racing; } const t=book.total(); btn('clear').disabled=racing||!t; btn('rebet').disabled=racing||!last; btn('race').disabled=racing||!t; }
+  const quack=()=>{ tone(560,0,0.07,0.05,'sawtooth'); tone(440,0.06,0.11,0.045,'sawtooth'); };
+  async function race(){
+    if(racing||!book.total()) return;
+    ensureAudio(); racing=true; last=Object.assign({},book.bets); sync();
+    const inv=odds.map(m=>1/m), S=inv.reduce((a,b)=>a+b,0); let r=Math.random()*S, win=5;
+    for(let i=0;i<6;i++){ r-=inv[i]; if(r<=0){ win=i; break; } }
+    const ms=reduceMotion.matches?1500:6500;
+    if(H.race) H.race(win,ms); say("And they're off! 🦆"); quack(); setTimeout(quack,300);
+    await sleep(ms); if(!alive) return;
+    const k='d'+(win+1), staked=book.total(), v=book.bets[k]||0, back=v*odds[win], placed=Object.assign({},book.bets);
+    book.reset(); if(back) give(back); luckBonus(back-staked); reportRound({game:'duckrace',res:k,bets:placed,net:back-staked});
+    const nm='Duck '+(win+1)+' ('+DUCK_NAMES[win]+')'; quack();
+    if(back>staked){ say(nm+' wins! You win '+money(back-staked)+'.'); sfx.win(); }
+    else if(back===staked) say(nm+' wins. You broke even.');
+    else if(back>0) say(nm+' wins. You got '+money(back)+' back.');
+    else { say(nm+' wins. The house takes your '+money(staked)+'.'); sfx.lose(); }
+    odds=newDuckOdds(); if(H.setOdds) H.setOdds(odds,win); label();
+    racing=false; sync(); afterRound();
+  }
+  btn('clear').addEventListener('click',()=>{ if(racing) return; book.clear(); sync(); });
+  btn('rebet').addEventListener('click',()=>{ if(racing) return; const r=book.rebet(last); if(r==='short') say('Rebet needs '+money(sum(last))+'.'); else if(r==='ok') sfx.chip(); sync(); });
+  btn('race').addEventListener('click',race);
+  label(); sync();
+  return {bets:()=>book.bets, busy:()=>racing, destroy(){ alive=false; book.clear(); }};
+}
+function duckModel(col){
+  const d=new THREE.Group(), body=smooth({color:col,specular:0x553300,shininess:40}), beak=smooth({color:0xff8a1a,specular:0x332200,shininess:30}), wht=lamb(0xffffff), blk=lamb(0x111111);
+  mesh(geo('dkBody',()=>new THREE.SphereGeometry(0.1,16,12)),body,0,0.06,0,d).scale.set(1.35,0.8,1.0);
+  const tail=mesh(geo('dkTail',()=>new THREE.ConeGeometry(0.045,0.09,10)),body,-0.12,0.1,0,d); tail.rotation.z=0.9;
+  [-1,1].forEach(s=>{ const w=mesh(geo('dkWing',()=>new THREE.SphereGeometry(0.05,10,8)),body,-0.01,0.08,s*0.085,d); w.scale.set(1.4,0.7,0.45); });
+  mesh(geo('dkHead',()=>new THREE.SphereGeometry(0.065,14,10)),body,0.07,0.16,0,d);
+  const bk=mesh(geo('dkBeak',()=>new THREE.SphereGeometry(0.035,10,8)),beak,0.135,0.145,0,d); bk.scale.set(1.3,0.45,1.1);
+  [-1,1].forEach(s=>{ mesh(geo('dkEyeW',()=>new THREE.SphereGeometry(0.019,10,8)),wht,0.115,0.185,s*0.032,d); mesh(geo('dkEyeP',()=>new THREE.SphereGeometry(0.011,8,6)),blk,0.13,0.188,s*0.036,d); });
+  return d;
+}
+function duckRaceStand(px,pz){
+  const g=grp(px,pz,0); g.visible=false;
+  const ref={g,odds:newDuckOdds(),anim:null,win:null};
+  const NL=6, LW=0.27, X0=-1.7, X1=1.62, laneZ=i=>-0.28-i*LW, laneY=i=>0.72+i*0.075;
+  const waterTex=canvasTex(256,64,(c,w,h)=>{ c.fillStyle='#1f9be0'; c.fillRect(0,0,w,h); c.strokeStyle='rgba(255,255,255,.35)'; c.lineWidth=3; for(let k=0;k<6;k++){ c.beginPath(); for(let x=0;x<=w;x+=8){ const y=8+k*10+Math.sin(x/18+k)*3; x?c.lineTo(x,y):c.moveTo(x,y); } c.stroke(); } });
+  waterTex.wrapS=waterTex.wrapT=THREE.RepeatWrapping; waterTex.repeat.set(6,1);
+  const water=smooth({map:waterTex,color:0xffffff,emissive:0x06263a,shininess:60,specular:0x88ccff});
+  const wood=M.darkWood, trim=M.gold, white=lamb(0xf4f1ea), red=lamb(0xd42a35);
+  const checker=canvasTex(64,256,(c,w,h)=>{ for(let y=0;y<h;y+=16) for(let x=0;x<w;x+=16){ c.fillStyle=((x+y)/16)%2?'#111':'#fff'; c.fillRect(x,y,16,16); } });
+  for(let i=0;i<NL;i++){
+    const z=laneZ(i), y=laneY(i);
+    box(3.9,y,LW,wood,-0.05,y/2,z,g);
+    mesh(geo('drWater',()=>new THREE.BoxGeometry(X1-X0+0.25,0.03,LW-0.03)),water,(X0+X1)/2+0.05,y+0.015,z,g);
+    const lane=mesh(geo('drNum',()=>new THREE.PlaneGeometry(0.2,0.2)),new THREE.MeshBasicMaterial({map:canvasTex(128,128,(c,w,h)=>{ c.fillStyle=DUCK_COLS[i]; c.beginPath(); c.arc(64,64,58,0,TAU); c.fill(); c.lineWidth=8; c.strokeStyle='#1a1208'; c.stroke(); c.fillStyle='#1a1208'; c.font='900 74px '+UI; c.textAlign='center'; c.textBaseline='middle'; c.fillText(String(i+1),64,68); },{text:true}),transparent:true,toneMapped:false}),-1.99,y+0.19,z,g);
+    box(0.26,0.05,LW-0.02,lamb(0x8a5a2a),-1.9,y+0.025,z,g);
+    const fin=mesh(geo('drFin',()=>new THREE.PlaneGeometry(0.1,LW-0.03)),new THREE.MeshBasicMaterial({map:checker,toneMapped:false}),X1,y+0.032,z,g); fin.rotation.x=-Math.PI/2;
+  }
+  for(let i=0;i<=NL;i++){ const z=-0.28+LW/2-i*LW, y=laneY(Math.min(NL-1,i))+0.04; const rope=box(3.95,0.035,0.03,i%2?red:white,-0.05,y,z,g); }
+  box(3.95,0.22,0.06,trim,-0.05,0.65,-0.12,g);
+  box(3.95,laneY(NL-1)+0.25,0.1,wood,-0.05,(laneY(NL-1)+0.25)/2,laneZ(NL-1)-LW/2-0.05,g);
+  const archH=laneY(NL-1)+0.7, zc=laneZ(2.5);
+  [laneZ(0)+LW/2+0.04,laneZ(NL-1)-LW/2-0.04].forEach(z=>cyl(0.03,0.03,archH,8,M.chrome,X1,archH/2,z,g));
+  const ban=mesh(geo('drBan',()=>new THREE.PlaneGeometry(NL*LW+0.1,0.16)),new THREE.MeshBasicMaterial({map:canvasTex(512,64,(c,w,h)=>{ for(let x=0;x<w;x+=32) for(let y=0;y<h;y+=32){ c.fillStyle=((x+y)/32)%2?'#111':'#fff'; c.fillRect(x,y,32,32); } c.fillStyle='rgba(212,42,53,.92)'; c.fillRect(w/2-110,8,220,48); c.fillStyle='#fff'; c.font='900 36px '+UI; c.textAlign='center'; c.textBaseline='middle'; c.fillText('FINISH',w/2,33); },{text:true}),side:THREE.DoubleSide,toneMapped:false}),X1,archH-0.05,zc,g); ban.rotation.y=Math.PI/2;
+  // odds board
+  const bs={odds:ref.odds,win:null};
+  const boardTex=canvasTex(1024,300,(c,w,h)=>{
+    c.fillStyle='#0d0a1c'; rrect(c,4,4,w-8,h-8,26); c.fill(); c.strokeStyle='#e8b64a'; c.lineWidth=8; rrect(c,12,12,w-24,h-24,20); c.stroke();
+    c.textAlign='center'; c.textBaseline='middle';
+    for(let i=0;i<NL;i++){ const x=w/NL*(i+0.5), hot=bs.win===i;
+      if(hot){ c.fillStyle='rgba(255,210,60,.22)'; rrect(c,x-78,30,156,h-60,18); c.fill(); }
+      c.fillStyle=DUCK_COLS[i]; c.beginPath(); c.arc(x,92,44,0,TAU); c.fill(); c.lineWidth=6; c.strokeStyle='#1a1208'; c.stroke();
+      c.fillStyle='#1a1208'; c.font='900 52px '+UI; c.fillText(String(i+1),x,96);
+      c.fillStyle='#fff'; c.font='800 26px '+UI; c.fillText(DUCK_NAMES[i].toUpperCase(),x,164);
+      c.fillStyle=hot?'#ffd23a':'#5dff98'; c.font='900 54px '+UI; c.fillText(bs.odds[i]+'×',x,222);
+      if(hot){ c.fillStyle='#ffd23a'; c.font='900 24px '+UI; c.fillText('WINNER!',x,266); } }
+  },{text:true});
+  const bz=laneZ(NL-1)-LW/2-0.1, by=laneY(NL-1)+0.8;
+  mesh(geo('drBoard',()=>new THREE.PlaneGeometry(3.4,1.0)),new THREE.MeshBasicMaterial({map:boardTex,toneMapped:false}),0,by,bz+0.012,g);
+  box(3.5,1.1,0.06,lamb(0x15121c),0,by,bz-0.03,g);
+  [-1.6,1.6].forEach(x=>cyl(0.04,0.04,by,8,M.black,x,by/2,bz-0.03,g));
+  neonSign('DUCK RACE',{font:'800 70px '+UI,color:'#fff27a',glow:'#2ad4ff',board:true,w:512,h:128,spacing:'5px'},0,by+0.85,bz,0,2.2,0.55,g);
+  ref.setOdds=(o,win)=>{ ref.odds=o.slice(); bs.odds=ref.odds; bs.win=win==null?null:win; boardTex.userData.redraw(); };
+  // ducks
+  const ducks=[]; for(let i=0;i<NL;i++){ const d=duckModel(new THREE.Color(DUCK_COLS[i]).getHex()); d.position.set(X0,laneY(i)+0.03,laneZ(i)); d.scale.setScalar(1.25); g.add(d); ducks.push(d); }
+  ref.race=(win,ms)=>{
+    const T=[]; for(let i=0;i<NL;i++) T.push(i===win?ms*0.84:ms*(0.9+Math.random()*0.16));
+    ref.anim={t0:performance.now(),ms,win,T,a:ducks.map(()=>0.02+Math.random()*0.02),f:ducks.map(()=>1+Math.random()*1.6),ph:ducks.map(()=>Math.random()*TAU),done:false};
+    bs.win=null; boardTex.userData.redraw();
+  };
+  const xs=ducks.map(()=>X0);
+  tickers.push((t,dt)=>{
+    if(!g.visible) return;
+    const A=ref.anim;
+    ducks.forEach((d,i)=>{ let x=xs[i];
+      if(A){ const e=t-A.t0;
+        if(e<A.ms+1600){ const u=Math.min(1,e/A.T[i]); let p=e/A.T[i]+A.a[i]*Math.sin(TAU*A.f[i]*e/A.ms+A.ph[i])*Math.sin(Math.PI*u); x=X0+(X1-0.05-X0)*clamp(p,0,1); }
+        else { x=Math.max(X0,xs[i]-dt*0.0035*(X1-X0)); }
+        if(!A.done&&e>=A.T[A.win]){ A.done=true; bs.win=A.win; boardTex.userData.redraw(); }
+      }
+      xs[i]=x; d.position.x=x; d.position.y=laneY(i)+0.03+Math.sin(t*0.006+i*1.7)*0.008; d.rotation.z=Math.sin(t*0.009+i)*0.06; d.rotation.x=Math.sin(t*0.007+i*2)*0.05;
+    });
+    if(A&&t-A.t0>A.ms+3000&&xs.every(x=>x<=X0+1e-3)) ref.anim=null;
+    if(A&&t-A.t0<A.ms) waterTex.offset.x-=dt*0.0004; else waterTex.offset.x-=dt*0.00005;
+  });
+  // betting console in front of you (GWYF style) + keypad on your right
+  const con=new THREE.Group(); con.position.set(0,0.88,0.66); con.rotation.x=-0.78; g.add(con);
+  mesh(geo('drCon',()=>roundBox(1.62,0.5,0.08,0.035,2)),lamb(0x1a1920),0,0,-0.04,con);
+  mesh(geo('drConF',()=>roundBox(1.58,0.46,0.02,0.02,2)),lamb(0x26252d),0,0,-0.004,con);
+  cyl(0.05,0.07,0.7,8,lamb(0x1a1920),0,-0.42,-0.08,con).rotation.x=0.78;
+  const cK=new THREE.Group(); cK.rotation.x=Math.PI/2; cK.position.z=0.004; con.add(cK);
+  const pills=[];
+  for(let i=0;i<NL;i++) pills.push(cushion(cK,{label:String(i+1),css:DUCK_COLS[i],ink:'#1a1208',x:-0.65+i*0.26,y:0,z:-0.1,w:0.22,d:0.19,h:0.085,face:'z',fn:()=>clickDom('.spots .spot:nth-child('+(i+1)+')'),hover:()=>domLabel('.spots .spot:nth-child('+(i+1)+')','Bet on ')||'Bet on duck '+(i+1)}));
+  pills.push(cushion(cK,{label:'CLEAR',color:0xd23c3c,x:-0.55,y:0,z:0.13,w:0.4,d:0.15,h:0.07,face:'z',fn:()=>clickDom('[data-a="clear"]'),hover:'Take your chips back',a:'clear'}));
+  pills.push(cushion(cK,{label:'REBET',color:0xd9a51c,x:-0.1,y:0,z:0.13,w:0.4,d:0.15,h:0.07,face:'z',fn:()=>clickDom('[data-a="rebet"]'),hover:'Bet the same again',a:'rebet'}));
+  pills.push(cushion(cK,{label:'RACE',color:0x7cc142,x:0.48,y:0,z:0.13,w:0.56,d:0.15,h:0.08,face:'z',fn:()=>clickDom('[data-a="race"]'),hover:'Start the race!',a:'race'}));
+  dimPills(ref,pills);
+  ref.stackAt=k=>{ const i=+String(k).slice(1)-1; return i>=0&&i<NL?[-1.82,laneY(i)+0.05,laneZ(i)]:null; };
+  ref.targets=pills.map(p=>p.b).concat(kiosk(g,1.0,0,0.82,-1.0,true));
+  const col=boxCollider(px,pz,0,-2.05,2.05,laneZ(NL-1)-LW/2-0.16,0.0); col.off=true; floorStands.push({g,col,floor:0});
+  const col2=boxCollider(px,pz,0,-0.85,0.85,0.4,0.9); col2.off=true; floorStands.push({g,col:col2,floor:0});
+  stations.push({type:'duckrace',label:'Play Duck Race',x:px,z:pz+1.5,tx:px,tz:pz-0.9,ref,onFloor:0});
+}
 const coinStands=[], coinColliders=[];
 function coinTex(L){
   return canvasTex(256,256,(g,w,h)=>{ const gr=g.createRadialGradient(100,90,10,128,128,128); gr.addColorStop(0,'#fff1a8'); gr.addColorStop(.6,'#f2c14e'); gr.addColorStop(1,'#b8862e'); g.fillStyle=gr; g.fillRect(0,0,w,h); g.strokeStyle='#8a5a12'; g.lineWidth=10; g.beginPath(); g.arc(128,128,108,0,TAU); g.stroke(); g.fillStyle='#7a4a0a'; g.font='800 130px '+UI; g.textAlign='center'; g.textBaseline='middle'; g.fillText(L,128,136); },{text:true});
@@ -4306,7 +4453,7 @@ function buildWorld(){
   rouletteTable(-5.5,3,0); rouletteTable(5.5,3,Math.PI);
   blackjackTable(-5.5,-6,0); blackjackTable(5.5,-6,Math.PI);
   diceTable(-5.5,-11.5,0);
-  coinFlipTable(0,-3); coinFlipTable(0,-8.5);
+  coinFlipTable(0,-3); coinFlipTable(0,-8.5); duckRaceStand(0,-6.6);
   plinkoStand(0,-3,2); hiloStand(0,-8.5,2); crashStand(0,-3,3); minesStand(0,-8.5,3);
   bigSixWall();
   const sp=buildSlotMachines();
@@ -4571,6 +4718,7 @@ const MENU=[
   {type:'slots',label:'Slots',note:'14 machines'},
   {type:'bigsix',label:'Big Six Wheel',note:'back wall'},
   {type:'dice',label:'Over / Under 7',note:'dice'},
+  {type:'duckrace',label:'Duck Race',note:'middle of Main Floor'},
   {type:'shop',label:'Shops',note:'20 items'},
   {type:'coinflip',label:'Coin Flip',note:'Neon Floor'},
   {type:'plinko',label:'Plinko',note:'Penthouse'},
