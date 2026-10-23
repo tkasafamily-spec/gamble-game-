@@ -582,7 +582,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
     </form>
     <div id="readyStep" hidden>
       <p class="who-name">Playing as <b id="whoName">Guest</b> <button class="linkbtn" id="changeWho" type="button">Change</button></p>
-      <p>You start in the lobby with $1,000. Ring the Loan Shark's phone, then walk through the doors to the casino. Each floor is one day: make the money before the timer runs out and the elevator takes you up. Run out of time and… look down 😱. Floor 1: $5,000 in 5 minutes. Playing with friends? Everyone starts with $1,000, but the amount you need goes up.</p>
+      <p>You start in the lobby with $1,000. Ring the Loan Dog's phone, then walk through the doors to the casino. Each floor is one day: make the money before the timer runs out and the elevator takes you up. Run out of time and… look down 😱. Floor 1: $5,000 in 5 minutes. Playing with friends? Everyone starts with $1,000, but the amount you need goes up.</p>
       <p class="fine">Playing with friends? In the casino press <b>P</b> (or Esc, then Party) to create or join a party.</p>
       <ul class="keys" id="keyList"></ul>
       <button class="spin" id="enterBtn" type="button" disabled>Setting up…</button>
@@ -606,7 +606,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
       <button class="mbtn" id="moveAcctBtn" type="button" hidden>Use my account on another device</button>
       <button class="mbtn" id="micMenuBtn" type="button">Mic: Off</button>
       <button class="mbtn" id="quitBtn" type="button">Quit to title</button>
-      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 24 Oct, no-hiss update</p>
+      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 24 Oct, dog update</p>
     </div>
     <div class="menu-pane" id="menuTasks" hidden>
       <p class="party-status">Do tasks to earn ⭐ points, then spend them at the shop outside. Tasks start over each new run. Press T any time to see them.</p>
@@ -655,7 +655,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 
 <div class="screen" id="dayScreen" hidden>
   <div class="screen-card">
-    <span class="eyebrow">The loan shark is here</span>
+    <span class="eyebrow">The Loan Dog is here</span>
     <h1 id="dayTitle">Day 1 done</h1>
     <p id="dayText"></p>
     <button class="spin" id="dayBtn" type="button">Start day 2</button>
@@ -884,7 +884,7 @@ function renderCash(bump){
 }
 function afterRound(){
   if(state.inRun&&loc==='casino'){ const q=dayQuota(); if(!state.quotaMet&&state.money>=q){ state.quotaMet=true; save(); toast('Quota made! Ride the elevator up now, or keep playing until the day ends.','win'); sfx.fanfare(); } }
-  if(isBroke()) toast("You're broke! Win it back before the day ends or it's shark time 🦈",'bad');
+  if(isBroke()) toast("You're broke! Win it back before the day ends or it's the dog pit 🐕",'bad');
   renderDay();
 }
 function luckBonus(net){}
@@ -896,7 +896,7 @@ function toast(text,kind){
   const t=document.createElement('div'); t.className='toast'+(kind?' '+kind:''); t.textContent=text;
   const box=$('toasts'); box.appendChild(t);
   while(box.children.length>3) box.firstChild.remove();
-  setTimeout(()=>{ t.remove(); },Math.max(3600,text.length*65));
+  setTimeout(()=>{ t.remove(); },Math.min(5000,Math.max(3000,text.length*60)));
 }
 
 /* =========================================================
@@ -931,6 +931,27 @@ function tone(freq,start,dur,gain,type){
     o.type=type||'triangle'; o.frequency.value=freq;
     g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(gain,t+0.012); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
     o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+dur+0.05);
+  }catch(e){}
+}
+function bark(at,pitch){
+  if(!ac||!state.sound) return;
+  try{
+    const t=ac.currentTime+(at||0), p=pitch||1, o=ac.createOscillator(), f=ac.createBiquadFilter(), g=ac.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(360*p,t); o.frequency.linearRampToValueAtTime(640*p,t+0.03); o.frequency.exponentialRampToValueAtTime(200*p,t+0.17);
+    f.type='bandpass'; f.frequency.value=950*p; f.Q.value=1.1;
+    g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.24,t+0.015); g.gain.exponentialRampToValueAtTime(0.0001,t+0.21);
+    o.connect(f); f.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+0.26);
+  }catch(e){}
+}
+function growl(dur){
+  if(!ac||!state.sound) return;
+  try{
+    const t=ac.currentTime, o=ac.createOscillator(), l=ac.createOscillator(), lg=ac.createGain(), mod=ac.createGain(), f=ac.createBiquadFilter(), env=ac.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(78,t); o.frequency.linearRampToValueAtTime(96,t+dur);
+    l.frequency.value=26; lg.gain.value=0.45; mod.gain.value=0.55; l.connect(lg); lg.connect(mod.gain);
+    f.type='lowpass'; f.frequency.value=480;
+    env.gain.setValueAtTime(0.0001,t); env.gain.linearRampToValueAtTime(0.13,t+0.25); env.gain.setValueAtTime(0.13,t+dur*0.7); env.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(f); f.connect(mod); mod.connect(env); env.connect(ac.destination); o.start(t); l.start(t); o.stop(t+dur+0.05); l.stop(t+dur+0.05);
   }catch(e){}
 }
 const sfx={
@@ -2088,7 +2109,7 @@ const CHALS=[
   {id:'slots3',title:'Hot machine',desc:()=>'Win 3 slot spins.',need:3,check:e=>e.game==='slots'&&e.win>0},
   {id:'doubles',title:'Seeing double',desc:()=>'Roll doubles at Over / Under 7 with a bet on Doubles.',need:1,check:e=>e.game==='dice'&&e.a===e.b&&(e.bets.doubles||0)>0},
   {id:'b6',title:'Big wheel',desc:()=>'Land the Big Six on $10 or better with a bet on it.',need:1,check:e=>e.game==='bigsix'&&['10','20','joker','logo'].includes(e.k)&&(e.bets[e.k]||0)>0},
-  {id:'bjwin',title:'Card shark',desc:()=>'Win 3 hands of blackjack.',need:3,check:e=>e.game==='blackjack'&&(e.kind==='win'||e.kind==='bj')},
+  {id:'bjwin',title:'Blackjack boss',desc:()=>'Win 3 hands of blackjack.',need:3,check:e=>e.game==='blackjack'&&(e.kind==='win'||e.kind==='bj')},
   {id:'big',title:'High roller',desc:q=>'Win '+money(q)+' or more in one round.',need:1,check:(e,q)=>e.net>=q}
 ];
 function newChallenge(){ if(state) state.chal=null; }
@@ -2098,7 +2119,7 @@ function itemPow(){ return state.items.stake?1.5:1; }
 function hasIt(k){ return !!state.items[k]&&!state.used[k]; }
 function useUp(k){ state.used[k]=true; }
 const TASKS=[
-  {id:'shark',name:'Ring the Loan Shark',need:1,pts:1},
+  {id:'shark',name:'Ring the Loan Dog',need:1,pts:1},
   {id:'outfit',name:'Change your look in the dressing room',need:1,pts:1},
   {id:'item',name:'Buy an item at the shop',need:1,pts:1},
   {id:'roulette',name:'Win at roulette',need:1,pts:1},
@@ -2665,10 +2686,10 @@ function arriveCasino(){
   showBig('DAY 1','Main Floor · make '+money(dayQuota(0))+' in 5 minutes'); setTimeout(hideBig,2600);
   sfx.fanfare();
 }
-function ringLoanShark(){
+function ringLoanDog(){
   if(cut||loc!=='lobby') return; taskEvent('shark');
   ensureAudio(); [0,0.45].forEach(st=>{ for(let k=0;k<6;k++) tone(k%2?1180:960,st+k*0.05,0.05,0.05,'square'); });
-  setTimeout(()=>{ showBig('🦈 THE LOAN SHARK','"You owe me big. Make '+money(dayQuota(0))+' on the first floor before the day ends. Miss it... and you swim with my friends. Now get going."'); tone(140,0,0.35,0.06,'sawtooth'); },900);
+  setTimeout(()=>{ toast('🐕 Loan Dog: "Make '+money(dayQuota(0))+' on floor 1 before the day ends, or you\'re dog food!"','bad'); bark(0); bark(0.24,0.92); },900);
   setTimeout(()=>{ if(loc==='lobby'&&!cut) hideBig(); },6200);
 }
 function backToLobby(msg,kind){
@@ -2700,7 +2721,7 @@ function elevatorRide(next,early){
 function deathRide(q){
   cut={kind:'pre',t0:performance.now()}; if(mode==='walk') mode='cut'; syncHud(); const f=$('fade'); f.classList.add('on'); sfx.lose();
   showBig("TIME'S UP!",'You needed '+money(q)+' but only had '+money(state.money)+'.');
-  setTimeout(()=>{ startCut('pit',{bit:false}); teleport(PT.x,PT.z,0); P.pitch=-1.0; f.classList.remove('on'); showBig('LOOK DOWN 😱',''); burst(1.4,90,0.7,0.12); if(pitParts) pitParts.reset(); },1700);
+  setTimeout(()=>{ startCut('pit',{bit:false}); teleport(PT.x,PT.z,0); P.pitch=-1.0; f.classList.remove('on'); showBig('LOOK DOWN 😱',''); growl(2.2); setTimeout(()=>{ bark(0,0.85); bark(0.3,1.05); },900); burst(1.4,90,0.7,0.12); if(pitParts) pitParts.reset(); },1700);
 }
 function winRun(){
   cut={kind:'pre',t0:performance.now()}; if(mode==='walk') mode='cut'; syncHud(); const f=$('fade'); f.classList.add('on'); sfx.fanfare(); setTimeout(()=>sfx.fanfare(),700);
@@ -2738,7 +2759,7 @@ function cutTick(dt){
     camera.position.set(P.x+(Math.random()-0.5)*shake,camY+(Math.random()-0.5)*shake,P.z); camera.rotation.set(pitch,P.yaw,0);
     if(t>2.4&&!cut.hid){ cut.hid=true; hideBig(); }
     if(t>J.t0+0.12&&!cut.splash){ cut.splash=true; burst(0.5,700,0.6,0.18); }
-    if(t>J.t1&&!cut.bit){ cut.bit=true; flash('#c00000',380); burst(0.7,140,0.8,0.4); tone(90,0,0.4,0.12,'sawtooth'); showBig('CHOMP! 🦈','The Loan Shark sends his regards…'); }
+    if(t>J.t1&&!cut.bit){ cut.bit=true; flash('#c00000',380); burst(0.7,140,0.8,0.4); tone(90,0,0.4,0.12,'sawtooth'); showBig('CHOMP! 🐕',''); bark(0.05,0.8); }
     if(t>J.t1+0.9&&!cut.dark){ cut.dark=true; $('fade').classList.add('on'); }
     if(t>J.t1+2.6&&!cut.out){ cut.out=true; backToLobby('You got eaten! Walk through the doors to try again.','bad'); }
   } else if(cut.kind==='limo'){
@@ -2985,12 +3006,12 @@ function buildOutside(){
   const arrows=[]; let n=0; for(let z=FZ+9.6;z>FZ+1.0;z-=1.5){ const m=new THREE.MeshBasicMaterial({map:arrowTex,transparent:true,toneMapped:false,depthWrite:false}); const a=mesh(geo('arrowP',()=>new THREE.PlaneGeometry(0.9,0.9)),m,0,0.025,z); a.rotation.x=-Math.PI/2; arrows.push({m,i:n++}); }
   tickers.push(t=>{ if(loc!=='lobby') return; const k=Math.floor(t/220); arrows.forEach(a=>{ a.m.opacity=((k-a.i)%arrows.length+arrows.length)%arrows.length<3?1:0.3; }); });
   stations.push({type:'casinodoor',label:'Walk inside to play',x:0,z:FZ+1.6,tx:0,tz:FZ});
-  // the Loan Shark and the rules board by the doors
-  buildLoanShark(-7,FZ+2.6,0);
-  neonSign('LOAN SHARK',{font:'800 64px '+UI,color:'#9ff3ff',glow:'#2a8cff',board:true,w:512,h:110,spacing:'5px'},-7,4.3,FZ+0.42,0,2.4,0.52);
+  // the Loan Dog and the rules board by the doors
+  buildLoanDog(-7,FZ+2.6,0);
+  neonSign('LOAN DOG',{font:'800 64px '+UI,color:'#ffe08a',glow:'#ff4a1a',board:true,w:512,h:110,spacing:'5px'},-7,4.3,FZ+0.42,0,2.4,0.52);
   const rules=canvasTex(512,640,(g,w,h)=>{ g.fillStyle='rgba(12,8,20,.94)'; rrect(g,6,6,w-12,h-12,24); g.fill(); g.strokeStyle='#ffd23a'; g.lineWidth=6; rrect(g,14,14,w-28,h-28,18); g.stroke();
     g.textAlign='center'; g.fillStyle='#ffd23a'; g.font='900 46px '+UI; g.fillText('HOW IT WORKS',w/2,74); g.textAlign='left'; g.fillStyle='#fff'; g.font='700 25px '+UI;
-    ['Ring the Loan Shark.','Buy items with ⭐ points.','Walk in through the doors.','Each floor is one day.','Make the money in time.','Made it? Elevator up.',"Didn't? LOOK DOWN 😱",'Do tasks for more points!','Floor 1: $5,000 in 5:00','Floor 2: $50K in 6:00','Floor 3: $1M in 7:00','Floor 4: $10M in 8:00'].forEach((t,i)=>g.fillText(t,40,128+i*42)); },{text:true});
+    ['Ring the Loan Dog.','Buy items with ⭐ points.','Walk in through the doors.','Each floor is one day.','Make the money in time.','Made it? Elevator up.',"Didn't? LOOK DOWN 😱",'Do tasks for more points!','Floor 1: $5,000 in 5:00','Floor 2: $50K in 6:00','Floor 3: $1M in 7:00','Floor 4: $10M in 8:00'].forEach((t,i)=>g.fillText(t,40,128+i*42)); },{text:true});
   const rb=grp(7,FZ+2.6,0); box(1.9,2.3,0.12,lamb(0x101018),0,2.0,-0.05,rb); box(0.12,0.9,0.12,O.iron,0,0.45,-0.05,rb);
   mesh(new THREE.PlaneGeometry(1.7,2.1),new THREE.MeshBasicMaterial({map:rules,toneMapped:false}),0,2.0,0.02,rb); boxCollider(7,FZ+2.6,0,-1,1,-0.2,0.15);
   // palm trees, lamps, hedges
@@ -3164,23 +3185,56 @@ function buildLimoModel(cx,cz,doorX){
   [-0.55,0.55].forEach(o=>{ cyl(0.03,0.04,0.95,8,M.gold,dx+o,0.475,2.85,g); mesh(geo('postTop',()=>new THREE.SphereGeometry(0.05,10,8)),M.gold,dx+o,0.97,2.85,g); });
   return g;
 }
-function buildLoanShark(x,z,rotY){
+function buildLoanDog(x,z,rotY){
   const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=rotY; scene.add(g);
-  const marble=smooth({color:0x1d1a24,specular:0x8888aa,shininess:60}), gold=M.gold, blk=lamb(0x050507), wht=smooth({color:0xffffff,shininess:50});
+  const marble=smooth({color:0x1d1a24,specular:0x8888aa,shininess:60}), gold=M.gold, wht=smooth({color:0xffffff,shininess:50});
   boxCollider(0,0,0,x-0.7,x+0.7,z-0.7,z+0.7);
   box(1.2,0.6,1.2,marble,0,0.3,0,g); box(1.26,0.05,1.26,gold,0,0.6,0,g); box(1.26,0.05,1.26,gold,0,0.03,0,g);
   const s=new THREE.Group(); s.position.y=0.62; g.add(s);
-  mesh(geo('lsBody',()=>new THREE.SphereGeometry(0.42,24,18)),gold,0,0.95,0,s).scale.set(1,2.2,0.9);
-  const snout=mesh(geo('lsSnout',()=>new THREE.ConeGeometry(0.3,0.5,18)),gold,0,1.95,0.05,s); snout.scale.set(1,1,0.85);
-  [-1,1].forEach(sd=>{ box(0.17,0.1,0.04,blk,sd*0.12,1.62,0.36,s); });
-  box(0.42,0.02,0.03,blk,0,1.66,0.36,s);
-  for(let k=0;k<9;k++){ const a=-0.7+k*0.175; const tt=mesh(geo('lsTooth',()=>new THREE.ConeGeometry(0.022,0.06,5)),wht,Math.sin(a)*0.25,1.42,Math.cos(a)*0.33,s); tt.rotation.x=Math.PI; }
-  box(0.36,0.025,0.03,lamb(0x3a0a10),0,1.44,0.34,s);
-  box(0.11,0.4,0.03,lamb(0xd42a35),0,1.05,0.38,s); box(0.15,0.07,0.04,lamb(0xd42a35),0,1.27,0.38,s);
-  const chain=mesh(geo('lsChain',()=>new THREE.TorusGeometry(0.2,0.02,6,20,Math.PI)),gold,0,1.3,0.3,s); chain.rotation.z=Math.PI;
-  const dor=mesh(geo('lsFin',()=>new THREE.ConeGeometry(0.2,0.5,4)),gold,0,1.5,-0.38,s); dor.scale.set(0.2,1,1.2); dor.rotation.x=-0.5;
-  [-1,1].forEach(sd=>{ const fn=mesh(geo('lsFin',()=>new THREE.ConeGeometry(0.2,0.5,4)),gold,sd*0.43,1.0,0.05,s); fn.scale.set(1,1,0.25); fn.rotation.z=sd*2.3; });
-  [-1,1].forEach(sd=>{ const tl=mesh(geo('lsFin',()=>new THREE.ConeGeometry(0.2,0.5,4)),gold,sd*0.2,0.1,-0.25,s); tl.scale.set(1,1,0.22); tl.rotation.set(-0.6,0,sd*1.9); });
+  const fur=smooth({color:0x7a5236,specular:0x221208,shininess:12}), muz=smooth({color:0xe8d0a8,specular:0x221a10,shininess:12}),
+    suit=smooth({color:0x16151c,specular:0x444455,shininess:30}), shirt=smooth({color:0xf6f2ea,shininess:20}), tie=smooth({color:0xd42a35,specular:0x552222,shininess:40}),
+    nose=smooth({color:0x0c0a0c,specular:0xffffff,shininess:90}), glass=smooth({color:0x050507,specular:0xffffff,shininess:120}), dark=lamb(0x3a2416), leather=smooth({color:0x2a0a0e,specular:0x442222,shininess:30});
+  // legs + paws
+  [-1,1].forEach(sd=>{ cyl(0.11,0.12,0.5,12,suit,sd*0.15,0.27,0,s); const pw=mesh(geo('ldPaw',()=>new THREE.SphereGeometry(0.11,14,10)),fur,sd*0.15,0.05,0.06,s); pw.scale.set(1,0.55,1.35); });
+  // body in a black suit, white shirt, red tie
+  mesh(geo('ldBody',()=>new THREE.SphereGeometry(0.42,24,18)),suit,0,0.9,0,s).scale.set(1,1.15,0.82);
+  mesh(geo('ldShirt',()=>new THREE.SphereGeometry(0.2,16,12)),shirt,0,1.12,0.27,s).scale.set(0.62,1.15,0.32);
+  box(0.075,0.32,0.03,tie,0,1.0,0.345,s); box(0.11,0.07,0.04,tie,0,1.19,0.33,s);
+  [0.86,0.72].forEach(y=>mesh(geo('ldBtn',()=>new THREE.SphereGeometry(0.022,8,6)),gold,0,y,0.35,s));
+  // gold chain with a $ coin
+  const chain=mesh(geo('ldChain',()=>new THREE.TorusGeometry(0.19,0.018,6,22,Math.PI)),gold,0,1.24,0.27,s); chain.rotation.z=Math.PI; chain.rotation.x=-0.25;
+  const coinTex=canvasTex(64,64,(c,w,h)=>{ c.fillStyle='#e8b830'; c.fillRect(0,0,w,h); c.fillStyle='#7a5a10'; c.font='900 46px '+UI; c.textAlign='center'; c.textBaseline='middle'; c.fillText('$',w/2,h/2+3); });
+  const coin=cyl(0.075,0.075,0.02,18,[gold,new THREE.MeshPhongMaterial({map:coinTex,specular:0xffffff,shininess:70}),gold],0,1.04,0.37,s); coin.rotation.x=Math.PI/2;
+  // arms: one on the hip, one pointing at you
+  [-1,1].forEach(sd=>{ const arm=new THREE.Group(); arm.position.set(sd*0.38,1.2,0); s.add(arm);
+    if(sd<0){ arm.rotation.set(-1.25,0,-0.25); } else { arm.rotation.set(0.2,0,0.75); }
+    cyl(0.09,0.08,0.46,12,suit,0,-0.23,0,arm); cyl(0.085,0.085,0.05,12,shirt,0,-0.47,0,arm);
+    mesh(geo('ldHand',()=>new THREE.SphereGeometry(0.09,14,10)),fur,0,-0.54,0,arm).scale.set(1,1.1,0.9);
+    if(sd<0){ const f=cyl(0.03,0.025,0.12,8,fur,0,-0.66,0,arm); } });
+  // spiked collar
+  const col=new THREE.Group(); col.position.set(0,1.38,0.02); s.add(col);
+  mesh(geo('ldCollar',()=>new THREE.TorusGeometry(0.2,0.045,8,26)),leather,0,0,0,col).rotation.x=Math.PI/2;
+  for(let k=0;k<10;k++){ const pv=new THREE.Group(); pv.rotation.y=-k*TAU/10; col.add(pv); const sp=mesh(geo('ldSpike',()=>new THREE.ConeGeometry(0.03,0.09,8)),gold,0.25,0,0,pv); sp.rotation.z=-Math.PI/2; }
+  // head
+  const hd=new THREE.Group(); hd.position.set(0,1.64,0.03); s.add(hd);
+  mesh(geo('ldHead',()=>new THREE.SphereGeometry(0.34,24,18)),fur,0,0,0,hd).scale.set(1.12,0.95,1);
+  mesh(geo('ldMuz',()=>new THREE.SphereGeometry(0.2,20,14)),muz,0,-0.09,0.25,hd).scale.set(1.3,0.78,0.85);
+  [-1,1].forEach(sd=>mesh(geo('ldJowl',()=>new THREE.SphereGeometry(0.12,14,10)),muz,sd*0.13,-0.15,0.27,hd).scale.set(1,0.9,0.9));
+  mesh(geo('ldJaw',()=>new THREE.SphereGeometry(0.16,16,10)),muz,0,-0.23,0.25,hd).scale.set(1.3,0.5,0.85);
+  box(0.26,0.02,0.03,lamb(0x2a0a0e),0,-0.19,0.405,hd);
+  // big bottom teeth sticking up (underbite)
+  [-1,1].forEach(sd=>{ const ft=mesh(geo('ldFang',()=>new THREE.ConeGeometry(0.03,0.1,8)),wht,sd*0.11,-0.15,0.39,hd); ft.rotation.z=sd*0.08; });
+  [-0.04,0.04].forEach(x2=>mesh(geo('ldTooth',()=>new THREE.ConeGeometry(0.018,0.05,6)),wht,x2,-0.17,0.405,hd));
+  mesh(geo('ldNose',()=>new THREE.SphereGeometry(0.07,16,12)),nose,0,-0.02,0.43,hd).scale.set(1.35,0.8,0.9);
+  // sunglasses and angry eyebrows
+  [-1,1].forEach(sd=>{ const ln=mesh(geo('ldLens',()=>roundBox(0.16,0.09,0.03,0.025,2)),glass,sd*0.125,0.09,0.31,hd); ln.rotation.set(-0.15,sd*0.28,sd*0.18);
+    const br=box(0.16,0.04,0.05,dark,sd*0.13,0.18,0.3,hd); br.rotation.set(-0.2,sd*0.25,sd*0.42); });
+  box(0.07,0.018,0.02,glass,0,0.1,0.335,hd);
+  // pointy ears
+  [-1,1].forEach(sd=>{ const ear=mesh(geo('ldEar',()=>new THREE.ConeGeometry(0.1,0.28,4)),fur,sd*0.22,0.3,-0.03,hd); ear.scale.set(1,1,0.4); ear.rotation.set(-0.15,0,-sd*0.3);
+    const inner=mesh(geo('ldEarIn',()=>new THREE.ConeGeometry(0.06,0.18,4)),smooth({color:0xd48a8a,shininess:10}),sd*0.215,0.28,0.0,hd); inner.scale.set(1,1,0.3); inner.rotation.set(-0.15,0,-sd*0.3); });
+  // stubby tail
+  mesh(geo('ldTail',()=>new THREE.SphereGeometry(0.07,10,8)),fur,0,0.62,-0.36,s);
   // little table with a red phone
   const tg=new THREE.Group(); tg.position.set(0.95,0,0.55); g.add(tg);
   cyl(0.28,0.28,0.04,16,M.darkWood,0,0.92,0,tg); cyl(0.04,0.06,0.9,8,M.gold,0,0.45,0,tg); cyl(0.2,0.22,0.03,14,M.gold,0,0.015,0,tg);
@@ -3190,7 +3244,7 @@ function buildLoanShark(x,z,rotY){
   const hs=new THREE.Group(); hs.position.set(0,1.1,-0.04); tg.add(hs);
   parts.push(cyl(0.025,0.025,0.3,10,red,0,0,0,hs)); hs.children[0].rotation.z=Math.PI/2;
   [-0.15,0.15].forEach(x=>{ const e=mesh(geo('phEar',()=>new THREE.SphereGeometry(0.05,12,8)),red,x,-0.01,0,hs); e.scale.set(1,0.7,1); parts.push(e); });
-  const ud={onClick:()=>{ ringLoanShark(); hs.position.y=1.2; setTimeout(()=>{ hs.position.y=1.1; },1500); },label:"Answer the Loan Shark's phone",btn:parts[0]};
+  const ud={onClick:()=>{ ringLoanDog(); hs.position.y=1.2; setTimeout(()=>{ hs.position.y=1.1; },1500); },label:"Answer the Loan Dog's phone",btn:parts[0]};
   parts.forEach(m=>{ m.userData=ud; lobbyTargets.push(m); });
   let lastRing=0; tickers.push(t=>{ if(loc!=='lobby'||cut) return; const k=(t%6000); hs.rotation.z=k<700?Math.sin(t*0.09)*0.08:0; if(k<700&&t-lastRing>5000&&state&&!state.inRun){ lastRing=t; } });
   return g;
@@ -3198,60 +3252,75 @@ function buildLoanShark(x,z,rotY){
 function evDoors(k){ if(!evParts) return; evParts.dL.position.x=-0.46-k*0.9; evParts.dR.position.x=0.46+k*0.9; }
 function evShow(n){ if(!evParts) return; evParts.ind.n=n; evParts.itex.userData.redraw(); }
 function makeShark(){
+  // an angry guard dog (faces +x). userData.jaw opens with negative rotation.z, tail wags with rotation.y
   const g=new THREE.Group();
-  const skin=smooth({color:0x60748c,specular:0x445566,shininess:30}), belly=smooth({color:0xe8edf2,specular:0x222222,shininess:20}),
-    gum=smooth({color:0x9a1626,specular:0x220000,shininess:10,side:THREE.DoubleSide}), throat=lamb(0x2a0306), tooth=smooth({color:0xffffff,specular:0x666666,shininess:60}), blk=lamb(0x050507);
-  const body=mesh(geo('skBody',()=>new THREE.SphereGeometry(0.5,28,18)),skin,-0.35,0,0,g); body.scale.set(2.1,0.66,0.66);
-  const bl=mesh(geo('skBody',()=>new THREE.SphereGeometry(0.5,28,18)),belly,-0.3,-0.09,0,g); bl.scale.set(1.95,0.52,0.6);
-  const head=new THREE.Group(); head.position.set(0.55,0.02,0); g.add(head);
-  const sn=mesh(geo('skSnout',()=>new THREE.SphereGeometry(0.42,26,16,0,TAU,0,Math.PI*0.62)),skin,0.12,-0.04,0,head); sn.scale.set(1.25,0.62,0.82);
-  mesh(geo('skThroat',()=>new THREE.SphereGeometry(0.3,16,12)),throat,0.0,-0.08,0,head).scale.set(1.2,0.55,0.8);
-  const roof=mesh(geo('skRoof',()=>new THREE.CircleGeometry(0.33,24)),gum,0.12,-0.075,0,head); roof.rotation.x=Math.PI/2; roof.scale.set(1.25,0.82,1);
-  const teeth=(parent,y,down,rx,rz,n)=>{ for(let k=0;k<n;k++){ const a=-1.25+2.5*k/(n-1), x=Math.cos(a)*rx, z=Math.sin(a)*rz;
-      const tt=mesh(geo('skTooth',()=>new THREE.ConeGeometry(0.028,0.095,6)),tooth,x,y,z,parent); tt.rotation.x=down?Math.PI:0; } };
-  teeth(head,-0.11,true,0.5,0.31,15);
-  const jaw=new THREE.Group(); jaw.position.set(0.05,-0.1,0); head.add(jaw);
-  const jw=mesh(geo('skJaw',()=>new THREE.SphereGeometry(0.4,24,14,0,TAU,Math.PI*0.5,Math.PI*0.5)),belly,0.12,0.02,0,jaw); jw.scale.set(1.15,0.5,0.76);
-  const tongue=mesh(geo('skRoof',()=>new THREE.CircleGeometry(0.33,24)),gum,0.1,0.01,0,jaw); tongue.rotation.x=-Math.PI/2; tongue.scale.set(1.1,0.72,1);
-  teeth(jaw,0.05,false,0.44,0.27,13);
-  [-1,1].forEach(sd=>{ mesh(geo('skEye',()=>new THREE.SphereGeometry(0.04,12,10)),blk,0.3,0.12,sd*0.215,head); });
-  [-1,1].forEach(sd=>{ for(let k=0;k<4;k++){ const gl=box(0.012,0.2,0.02,blk,0.05-k*0.075,-0.02,sd*0.31,g); gl.rotation.z=0.15; } });
-  const dor=mesh(geo('skFin',()=>new THREE.ConeGeometry(0.22,0.6,4)),skin,-0.3,0.48,0,g); dor.scale.set(1.2,1,0.18); dor.rotation.z=-0.35;
-  [-1,1].forEach(sd=>{ const pf=mesh(geo('skFin',()=>new THREE.ConeGeometry(0.22,0.6,4)),skin,0.05,-0.22,sd*0.38,g); pf.scale.set(1,0.9,0.16); pf.rotation.set(sd*1.1,0,-1.7); });
-  const tail=new THREE.Group(); tail.position.set(-1.35,0,0); g.add(tail);
-  [[0.5,0.62],[-0.6,0.42]].forEach(([dir,len])=>{ const tf=mesh(geo('skTail'+len,()=>new THREE.ConeGeometry(0.15,len,4)),skin,-0.08,dir*len*0.4,0,tail); tf.scale.set(1,1,0.18); tf.rotation.z=dir>0?0.55:Math.PI-0.55; });
-  g.userData={jaw,tail}; return g;
+  const fur=smooth({color:0x2a2420,specular:0x332a22,shininess:18}), tan=smooth({color:0xb8743a,specular:0x221208,shininess:12}),
+    gum=smooth({color:0x9a1626,specular:0x220000,shininess:10,side:THREE.DoubleSide}), tooth=smooth({color:0xffffff,specular:0x666666,shininess:60}),
+    eye=new THREE.MeshBasicMaterial({color:0xff2a1a,toneMapped:false}), leather=smooth({color:0x7a0e14,specular:0x442222,shininess:30}), nose=smooth({color:0x050505,specular:0xffffff,shininess:90});
+  mesh(geo('dgBody',()=>new THREE.SphereGeometry(0.5,22,14)),fur,0,0,0,g).scale.set(1.0,0.5,0.42);
+  mesh(geo('dgChest',()=>new THREE.SphereGeometry(0.3,18,12)),fur,0.3,-0.02,0,g).scale.set(1,1.05,0.85);
+  mesh(geo('dgChestT',()=>new THREE.SphereGeometry(0.2,14,10)),tan,0.42,-0.08,0,g).scale.set(0.7,1.0,0.9);
+  [-1,1].forEach(sd=>mesh(geo('dgThigh',()=>new THREE.SphereGeometry(0.15,14,10)),fur,-0.3,-0.05,sd*0.12,g).scale.set(1.2,1.1,0.7));
+  const nk=cyl(0.13,0.16,0.36,14,fur,0.5,0.2,0,g); nk.rotation.z=-0.9;
+  // spiked collar around the neck
+  const cg=new THREE.Group(); cg.position.set(0.5,0.2,0); cg.rotation.z=-0.9; g.add(cg);
+  mesh(geo('dgCollar',()=>new THREE.TorusGeometry(0.155,0.03,6,22)),leather,0,0,0,cg).rotation.x=Math.PI/2;
+  for(let k=0;k<8;k++){ const pv=new THREE.Group(); pv.rotation.y=-k*TAU/8; cg.add(pv); const sp=mesh(geo('dgSpike',()=>new THREE.ConeGeometry(0.022,0.07,6)),M.chrome,0.19,0,0,pv); sp.rotation.z=-Math.PI/2; }
+  // head
+  const head=new THREE.Group(); head.position.set(0.7,0.36,0); g.add(head);
+  mesh(geo('dgSkull',()=>new THREE.SphereGeometry(0.19,18,14)),fur,0,0,0,head).scale.set(1.1,0.95,0.9);
+  mesh(geo('dgSnout',()=>new THREE.SphereGeometry(0.13,16,10)),fur,0.22,-0.03,0,head).scale.set(1.6,0.6,0.72);
+  [-1,1].forEach(sd=>mesh(geo('dgCheek',()=>new THREE.SphereGeometry(0.08,12,8)),tan,0.2,-0.07,sd*0.08,head).scale.set(1.5,0.6,0.6));
+  mesh(geo('dgNose',()=>new THREE.SphereGeometry(0.045,12,8)),nose,0.42,0.0,0,head).scale.set(1,0.8,1.1);
+  const roof=mesh(geo('dgRoof',()=>new THREE.CircleGeometry(0.12,16)),gum,0.22,-0.085,0,head); roof.rotation.x=Math.PI/2; roof.scale.set(1.55,0.6,1);
+  for(let k=0;k<6;k++){ const x2=0.1+k*0.05; [-1,1].forEach(sd=>{ const big=k===5; const tt=mesh(geo(big?'dgFang':'dgTooth',()=>new THREE.ConeGeometry(big?0.018:0.012,big?0.075:0.04,6)),tooth,x2,-0.095,sd*(0.065-k*0.004),head); tt.rotation.x=Math.PI; }); }
+  [-1,1].forEach(sd=>{ mesh(geo('dgEye',()=>new THREE.SphereGeometry(0.032,10,8)),eye,0.12,0.06,sd*0.115,head);
+    const br=box(0.09,0.025,0.05,tan,0.12,0.11,sd*0.11,head); br.rotation.set(sd*0.2,0,-0.45); });
+  [-1,1].forEach(sd=>{ const ear=mesh(geo('dgEar',()=>new THREE.ConeGeometry(0.06,0.22,4)),fur,-0.04,0.22,sd*0.1,head); ear.scale.set(0.45,1,1); ear.rotation.set(sd*0.25,0,0.25); });
+  const jaw=new THREE.Group(); jaw.position.set(0.06,-0.1,0); head.add(jaw);
+  mesh(geo('dgJaw',()=>new THREE.SphereGeometry(0.11,14,8)),tan,0.17,-0.02,0,jaw).scale.set(1.9,0.42,0.68);
+  const tongue=mesh(geo('dgRoof',()=>new THREE.CircleGeometry(0.12,16)),gum,0.16,0.0,0,jaw); tongue.rotation.x=-Math.PI/2; tongue.scale.set(1.4,0.5,1);
+  for(let k=0;k<5;k++){ const x2=0.06+k*0.055; [-1,1].forEach(sd=>{ const big=k===4; const tt=mesh(geo(big?'dgFang':'dgTooth',()=>new THREE.ConeGeometry(big?0.018:0.012,big?0.075:0.04,6)),tooth,x2,0.02,sd*(0.055-k*0.003),jaw); }); }
+  // legs (swing with rotation.z) + tan paws
+  const legs=[];
+  [[0.3,-0.1,0.13],[0.3,-0.1,-0.13],[-0.32,-0.08,0.13],[-0.32,-0.08,-0.13]].forEach(([lx,ly,lz],i)=>{ const lg=new THREE.Group(); lg.position.set(lx,ly,lz); g.add(lg);
+    cyl(0.055,0.04,0.42,8,fur,0,-0.21,0,lg); mesh(geo('dgPaw',()=>new THREE.SphereGeometry(0.055,10,8)),tan,0.02,-0.43,0,lg).scale.set(1.4,0.6,1); lg.userData.ph=i%2?Math.PI:0; if(i>1) lg.userData.ph+=Math.PI/2; legs.push(lg); });
+  const tail=new THREE.Group(); tail.position.set(-0.48,0.1,0); g.add(tail);
+  const tl=cyl(0.03,0.018,0.26,6,fur,0,0.12,0,tail); tail.rotation.z=0.6;
+  g.userData={jaw,tail,legs}; return g;
 }
 function buildPit(){
   const X=PT.x, Z=PT.z, g=new THREE.Group(); g.position.set(X,0,Z); scene.add(g);
   mesh(geo('pitWall',()=>new THREE.CylinderGeometry(4,4,10,24,1,true)),new THREE.MeshPhongMaterial({color:0x1a2230,side:THREE.BackSide,shininess:4}),0,-0.5,0,g);
   for(let k=0;k<20;k++){ const a=k*TAU/20, sp=mesh(geo('pitSpike',()=>new THREE.ConeGeometry(0.13,1.0,6)),lamb(0xb0b6c0),Math.cos(a)*3.6,-2.8,Math.sin(a)*3.6,g); sp.rotation.set(0,-a,Math.PI/2); }
-  const water=new THREE.Mesh(geo('pitWater',()=>new THREE.CircleGeometry(4,32)),new THREE.MeshPhongMaterial({color:0x0b4a7a,emissive:0x04203a,transparent:true,opacity:0.88,shininess:60,specular:0x88ccff})); water.rotation.x=-Math.PI/2; water.position.y=-3.4; g.add(water);
+  const water=new THREE.Mesh(geo('pitWater',()=>new THREE.CircleGeometry(4,32)),new THREE.MeshPhongMaterial({color:0x5a3a22,emissive:0x1a0c04,shininess:4})); water.rotation.x=-Math.PI/2; water.position.y=-3.4; g.add(water);
+  const boneM=smooth({color:0xf2ead8,shininess:20});
+  [[1.2,0.4,0.3],[-1.6,-0.9,1.2],[0.3,-1.9,2.4],[-0.6,1.7,0.9],[2.1,-1.0,1.8],[-2.3,0.6,2.9]].forEach(([bx,bz,ry])=>{ const bn=new THREE.Group(); bn.position.set(bx,-3.36,bz); bn.rotation.y=ry; g.add(bn); cyl(0.035,0.035,0.34,8,boneM,0,0,0,bn).rotation.z=Math.PI/2; [-1,1].forEach(e=>[-1,1].forEach(f=>mesh(geo('boneEnd',()=>new THREE.SphereGeometry(0.045,8,6)),boneM,e*0.18,0,f*0.035,bn))); });
   const sharks=[];
-  for(let i=0;i<3;i++){ const sk=makeShark(); sk.scale.setScalar(0.7); g.add(sk); sk.userData.a=i*TAU/3; sharks.push(sk); }
+  for(let i=0;i<4;i++){ const sk=makeShark(); sk.scale.setScalar(0.7); g.add(sk); sk.userData.a=i*TAU/4; sharks.push(sk); }
   const jumper=makeShark(); jumper.scale.setScalar(1.15); jumper.visible=false; g.add(jumper);
-  const drops=[]; for(let k=0;k<26;k++){ const d=mesh(geo('pitDrop',()=>new THREE.SphereGeometry(0.06,6,5)),new THREE.MeshBasicMaterial({color:0xcfefff,toneMapped:false}),0,-9,0,g); d.visible=false; drops.push({m:d,v:new THREE.Vector3()}); }
+  const drops=[]; for(let k=0;k<26;k++){ const d=mesh(geo('pitDrop',()=>new THREE.SphereGeometry(0.06,6,5)),new THREE.MeshBasicMaterial({color:0xa07a4a,toneMapped:false}),0,-9,0,g); d.visible=false; drops.push({m:d,v:new THREE.Vector3()}); }
   const plat=new THREE.Group(); g.add(plat);
   cyl(0.5,0.5,0.08,20,lamb(0x3a3f48),0,-0.04,0,plat);
   const rr=new THREE.Mesh(geo('platRail2',()=>new THREE.TorusGeometry(0.62,0.03,6,24)),M.gold); rr.rotation.x=Math.PI/2; rr.position.y=0.95; plat.add(rr);
   for(let k=0;k<4;k++){ const a=k*TAU/4+0.785; cyl(0.03,0.03,0.95,6,M.gold,Math.cos(a)*0.62,0.47,Math.sin(a)*0.62,plat); cyl(0.012,0.012,7,4,M.chrome,Math.cos(a)*0.62,4.4,Math.sin(a)*0.62,plat); }
   const R=new THREE.PointLight(0xff2a2a,1.5,14,1.6); R.position.set(X,3,Z); scene.add(R); LIGHTS.pit.push(R);
-  const B=new THREE.PointLight(0x2a8cff,1.0,10,1.6); B.position.set(X,-2.6,Z); scene.add(B); LIGHTS.pit.push(B);
-  const S0=new THREE.Vector3(0,-3.9,-3.2), toC=new THREE.Vector3(), qv=new THREE.Quaternion(), ax=new THREE.Vector3(1,0,0), vv=new THREE.Vector3(), pp=new THREE.Vector3();
+  const B=new THREE.PointLight(0xff7a2a,1.0,10,1.6); B.position.set(X,-2.6,Z); scene.add(B); LIGHTS.pit.push(B);
+  const S0=new THREE.Vector3(0,-2.76,-3.2), toC=new THREE.Vector3(), qv=new THREE.Quaternion(), ax=new THREE.Vector3(1,0,0), vv=new THREE.Vector3(), pp=new THREE.Vector3();
   let spawned=false;
   const jumpPos=(u,camY,out)=>{ const E=new THREE.Vector3(0,camY-0.22,-1.55); out.lerpVectors(S0,E,u); out.y+=Math.sin(Math.PI*u)*0.85; return out; };
   pitParts={plat,sharks,jumper,
     reset(){ jumper.visible=false; spawned=false; drops.forEach(d=>{ d.m.visible=false; }); },
     tick(t,dt,camY){
       plat.position.y=camY-EYE;
-      sharks.forEach((sk,i)=>{ const sp=0.55+t*0.08, a=sk.userData.a+t*sp, r=2.5; sk.position.set(Math.cos(a)*r,-3.62+Math.sin(t*2+i)*0.04,Math.sin(a)*r); sk.rotation.set(0,-a-Math.PI/2,0); sk.userData.tail.rotation.y=Math.sin(t*9+i)*0.35; sk.userData.jaw.rotation.z=-0.15-0.15*Math.sin(t*3+i); });
+      sharks.forEach((sk,i)=>{ const sp=0.55+t*0.08, a=sk.userData.a+t*sp, r=2.5; sk.position.set(Math.cos(a)*r,-3.0+Math.abs(Math.sin(t*7+i))*0.06,Math.sin(a)*r); sk.rotation.set(0,-a-Math.PI/2,0); sk.userData.tail.rotation.y=Math.sin(t*14+i)*0.5; sk.userData.jaw.rotation.z=-0.2-0.2*Math.sin(t*5+i); (sk.userData.legs||[]).forEach(l=>{ l.rotation.z=Math.sin(t*11+i+l.userData.ph)*0.6; }); });
       const J=PIT_JUMP;
       if(t>=J.t0){
         const u=clamp((t-J.t0)/(J.t1-J.t0),0,1); jumper.visible=true;
         jumpPos(u,camY,pp); const u2=Math.min(1,u+0.02); jumpPos(u2,camY,vv); vv.sub(pp);
         jumper.position.copy(pp); toC.set(0,camY+1.15,0).sub(pp).normalize(); if(vv.lengthSq()>1e-8){ vv.normalize(); const k=clamp((u-0.45)/0.4,0,1); vv.lerp(toC,k*k*(3-2*k)).normalize(); qv.setFromUnitVectors(ax,vv); jumper.quaternion.copy(qv); }
         const open=t<J.t1?clamp((u-0.35)/0.45,0,1):Math.max(0,1-(t-J.t1)/0.18);
-        jumper.userData.jaw.rotation.z=-0.95*open; jumper.userData.tail.rotation.y=Math.sin(t*22)*0.5;
+        jumper.userData.jaw.rotation.z=-0.85*open; jumper.userData.tail.rotation.y=Math.sin(t*22)*0.5; (jumper.userData.legs||[]).forEach((l,k)=>{ l.rotation.z=k<2?0.9:-0.9; });
         if(u>0.06&&!spawned){ spawned=true; drops.forEach(d=>{ d.m.visible=true; d.m.position.set(S0.x+(Math.random()-0.5)*0.8,-3.35,S0.z+(Math.random()-0.5)*0.8); d.v.set((Math.random()-0.5)*2.2,2.5+Math.random()*2.6,(Math.random()-0.5)*2.2); }); }
       }
       drops.forEach(d=>{ if(!d.m.visible) return; d.v.y-=9.8*dt; d.m.position.addScaledVector(d.v,dt); if(d.m.position.y<-3.5) d.m.visible=false; });
@@ -3265,12 +3334,12 @@ function endDayOld(){
   if(passed){
     state.tickets+=3; state.day++; state.dayLeft=DAY_LEN; state.bestDay=Math.max(state.bestDay||1,state.day); save();
     $('dayTitle').textContent='Day '+(state.day-1)+' done';
-    $('dayText').textContent='You paid the loan shark '+money(q)+' and earned 3 tickets. Tomorrow he wants '+money(quotaFor(state.day))+'.';
+    $('dayText').textContent='You paid the Loan Dog '+money(q)+' and earned 3 tickets. Tomorrow he wants '+money(quotaFor(state.day))+'.';
     $('dayBtn').textContent='Start day '+state.day; sfx.fanfare();
   } else {
     state.bestDay=Math.max(state.bestDay||1,state.day); save();
     $('dayTitle').textContent='Busted';
-    $('dayText').textContent='The loan shark wanted '+money(q)+' and you had '+money(state.money)+'. You lasted '+state.day+' day'+(state.day>1?'s':'')+'. Best run: day '+state.bestDay+'.';
+    $('dayText').textContent='The Loan Dog wanted '+money(q)+' and you had '+money(state.money)+'. You lasted '+state.day+' day'+(state.day>1?'s':'')+'. Best run: day '+state.bestDay+'.';
     $('dayBtn').textContent='Start a new run'; sfx.lose();
   }
   $('dayScreen').dataset.passed=passed?'1':''; $('dayScreen').hidden=false;
@@ -3421,6 +3490,19 @@ const GAMES={
   elevator:{title:'Elevator',build:buildElevator}
 };
 let mode='start', current=null;
+const BUILD_ID='2026-10-24-dog';
+(function autoUpdate(){
+  if(!/github\.io$/.test(location.hostname)||!window.fetch) return;
+  let tries=0; try{ tries=+(sessionStorage.getItem('cwfUpd')||0); }catch(_){}
+  fetch(location.pathname+'?fresh='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(txt=>{
+    const m=txt.match(/const BUILD_ID='([^']+)'/);
+    if(!m||m[1]===BUILD_ID){ try{ sessionStorage.removeItem('cwfUpd'); }catch(_){} return; }
+    if(tries>=2) return;
+    if(mode!=='start'){ toast('A new version of the game is out. Refresh the page to get it.'); return; }
+    try{ sessionStorage.setItem('cwfUpd',String(tries+1)); }catch(_){}
+    fetch(location.pathname,{cache:'reload'}).catch(()=>{}).then(()=>location.reload());
+  }).catch(()=>{});
+})();
 function openGame(key,st){
   if(current) return;
   const g=GAMES[key]; if(!g) return;
