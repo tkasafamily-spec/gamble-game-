@@ -606,6 +606,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
       <button class="mbtn" id="moveAcctBtn" type="button" hidden>Use my account on another device</button>
       <button class="mbtn" id="micMenuBtn" type="button">Mic: Off</button>
       <button class="mbtn" id="quitBtn" type="button">Quit to title</button>
+      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 24 Oct, no-hiss update</p>
     </div>
     <div class="menu-pane" id="menuTasks" hidden>
       <p class="party-status">Do tasks to earn ⭐ points, then spend them at the shop outside. Tasks start over each new run. Press T any time to see them.</p>
@@ -2404,7 +2405,7 @@ function startPartyLoop(){
   if(party.iv) clearInterval(party.iv);
   party.iv=setInterval(()=>{
     if((!party.peer&&!party.room)||!party.code||!state) return;
-    partySync(); voiceSync();
+    partySync(); voiceSync(); micKeep();
     const me=selfState();
     if(party.host){ party.members[me.id]=me; const list=Object.values(party.members); party.conns.forEach(c=>{ try{ if(c.open) c.send({t:'roster',list}); }catch(_){} }); }
     else if(party.hostConn&&party.hostConn.open){ try{ party.hostConn.send({t:'me',s:me}); }catch(_){} }
@@ -2460,30 +2461,45 @@ async function joinParty(raw){
 /* ---- voice chat ----
    Each player sends one audio stream made with WebAudio: the mic goes through a gain node, so turning
    the mic off/on never has to restart a call. Calls go between every pair of party members. */
-const voice={on:false,stream:null,src:null,gain:null,dest:null,an:null,calls:new Map(),audios:new Map(),tried:{}};
+const voice={want:false,opening:false,on:false,stream:null,src:null,gain:null,dest:null,an:null,calls:new Map(),audios:new Map(),tried:{}};
 function voiceDest(){ ensureAudio(); if(!ac) return null; if(!voice.dest){ voice.dest=ac.createMediaStreamDestination(); voice.gain=ac.createGain(); voice.gain.gain.value=0; voice.gain.connect(voice.dest); voice.an=ac.createAnalyser(); voice.an.fftSize=256; voice.gain.connect(voice.an); } return voice.dest; }
-async function setMic(on){
-  if(on){
-    try{
-      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw {name:'NoMic'};
-      const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-      if(!voiceDest()) throw {name:'NoAudio'};
-      voice.stream=st; voice.src=ac.createMediaStreamSource(st); voice.src.connect(voice.gain); voice.gain.gain.value=1; voice.on=true;
-      toast(party.peer&&party.code?'Mic on! Your party can hear you.':party.room?'Mic on. Voice chat only works on the website link, not the Claude link.':'Mic on. Make or join a party to talk to friends.','win');
-    }catch(e){ voice.on=false;
-      let framed=false; try{ framed=window.self!==window.top; }catch(_){ framed=true; }
-      if(inClaude()||framed){ toast('The Claude link is not allowed to use your mic. Voice chat works on the game website: open Menu, then Party, then the green website buttons.','bad'); if($('partyWeb')){ $('partyWeb').hidden=false; partyWebLinks(); } }
-      else if(e&&e.name==='NotAllowedError') toast('Your browser blocked the mic. Click the lock or mic icon at the left of the address bar, set Microphone to Allow, reload the page, then press the mic button again.','bad');
-      else if(e&&(e.name==='NotFoundError'||e.name==='NoMic')) toast('No microphone was found. Plug one in and try again.','bad');
-      else toast('The mic could not start ('+((e&&e.name)||'error')+'). Close other apps using the mic and try again.','bad'); }
-  } else {
-    voice.on=false; if(voice.gain) voice.gain.gain.value=0;
-    if(voice.src){ try{ voice.src.disconnect(); }catch(_){} voice.src=null; }
-    if(voice.stream){ voice.stream.getTracks().forEach(t=>t.stop()); voice.stream=null; }
-  }
-  renderMic(); voiceSync();
+// The mic only really opens while a friend is in your party. Keeping a mic open makes many headsets
+// (Bluetooth ones especially) switch into "phone call" mode, which hisses all the time.
+function micFriends(){ return !!(party.peer&&party.code&&party.peer.id&&Object.values(party.members).some(m=>m.id&&m.id!==party.peer.id&&m.uid!==party.uid)); }
+async function openMic(){
+  if(voice.on||voice.opening) return; voice.opening=true;
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw {name:'NoMic'};
+    const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    if(!voice.want||!micFriends()){ st.getTracks().forEach(t=>t.stop()); return; }
+    if(!voiceDest()) throw {name:'NoAudio'};
+    voice.stream=st; voice.src=ac.createMediaStreamSource(st); voice.src.connect(voice.gain); voice.gain.gain.value=1; voice.on=true;
+    toast('Mic on! Your party can hear you.','win');
+  }catch(e){ voice.on=false; voice.want=false; micError(e); }
+  finally{ voice.opening=false; renderMic(); }
 }
-function renderMic(){ const b=$('micBtn'); if(b){ b.classList.toggle('off',!voice.on); b.setAttribute('aria-pressed',String(voice.on)); b.title=voice.on?'Mic is on (click to turn off)':'Mic is off (click to turn on)'; } const m=$('micMenuBtn'); if(m) m.textContent='Mic: '+(voice.on?'On':'Off'); }
+function closeMic(){
+  voice.on=false; if(voice.gain) voice.gain.gain.value=0;
+  if(voice.src){ try{ voice.src.disconnect(); }catch(_){} voice.src=null; }
+  if(voice.stream){ voice.stream.getTracks().forEach(t=>t.stop()); voice.stream=null; }
+}
+function micError(e){
+  let framed=false; try{ framed=window.self!==window.top; }catch(_){ framed=true; }
+  if(inClaude()||framed){ toast('The Claude link is not allowed to use your mic. Voice chat works on the game website: open Menu, then Party, then the green website buttons.','bad'); if($('partyWeb')){ $('partyWeb').hidden=false; partyWebLinks(); } }
+  else if(e&&e.name==='NotAllowedError') toast('Your browser blocked the mic. Click the lock or mic icon at the left of the address bar, set Microphone to Allow, reload the page, then press the mic button again.','bad');
+  else if(e&&(e.name==='NotFoundError'||e.name==='NoMic')) toast('No microphone was found. Plug one in and try again.','bad');
+  else toast('The mic could not start ('+((e&&e.name)||'error')+'). Close other apps using the mic and try again.','bad');
+}
+function micKeep(){ if(voice.want&&micFriends()){ if(!voice.on) openMic(); } else if(voice.on) closeMic(); }
+async function setMic(on){
+  voice.want=!!on;
+  if(!on){ closeMic(); renderMic(); return; }
+  if(inClaude()){ voice.want=false; micError({name:'Claude'}); renderMic(); return; }
+  if(micFriends()) await openMic();
+  else toast('Mic is ready. It switches on by itself when a friend joins your party.','win');
+  renderMic();
+}
+function renderMic(){ const b=$('micBtn'), on=!!voice.want; if(b){ b.classList.toggle('off',!on); b.setAttribute('aria-pressed',String(on)); b.title=on?(voice.on?'Mic is on (click to turn off)':'Mic is ready: it turns on when a friend is in your party'):'Mic is off (click to turn on)'; } const m=$('micMenuBtn'); if(m) m.textContent='Mic: '+(on?'On':'Off'); }
 function voiceCall(c,id){ voice.calls.set(id,c); c.on('stream',rs=>attachVoice(id,rs)); const end=()=>{ if(voice.calls.get(id)===c) voice.calls.delete(id); dropVoice(id); }; c.on('close',end); c.on('error',end); }
 function onVoiceCall(c){ const d=voiceDest(); try{ c.answer(d?d.stream:undefined); }catch(_){ return; } const old=voice.calls.get(c.peer); if(old&&old!==c){ try{ old.close(); }catch(_){} } voiceCall(c,c.peer); }
 function attachVoice(id,rs){ dropVoice(id); const a=new Audio(); a.autoplay=true; a.srcObject=rs; a.volume=0; const p=a.play(); if(p&&p.catch) p.catch(()=>{}); voice.audios.set(id,a); }
@@ -2505,7 +2521,7 @@ function voiceTick(){
   voice.audios.forEach((a,id)=>{ const m=Object.values(party.members).find(x=>x.id===id); let v=0.15; if(m&&m.floor===myF&&myF!==-2){ const d=Math.hypot(m.x-P.x,m.z-P.z); v=clamp(1-(d-2)/16,0.15,1); } a.volume=v; });
 }
 function leaveParty(silent){
-  voiceHangAll();
+  voiceHangAll(); closeMic(); renderMic();
   if(party.iv){ clearInterval(party.iv); party.iv=null; }
   try{ if(party.hostConn) party.hostConn.close(); }catch(_){}
   party.conns.forEach(c=>{ try{ c.close(); }catch(_){} }); party.conns.clear();
@@ -5953,7 +5969,7 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Space'&&tableMount){ e.preventDefault(); quickSpin(); }
   if(e.code==='KeyT'&&!e.repeat){ pendingPane='tasks'; if(document.pointerLockElement) document.exitPointerLock(); else openMenuNow(); return; }
   if(e.code==='KeyG'&&!e.repeat){ dropHeld(); return; }
-  if(e.code==='KeyM'&&!e.repeat){ setMic(!voice.on); return; }
+  if(e.code==='KeyM'&&!e.repeat){ setMic(!voice.want); return; }
   if(e.code==='KeyP'&&!e.repeat){ pendingPane='party'; if(document.pointerLockElement) document.exitPointerLock(); else openMenuNow(); return; }
   if(e.code==='KeyQ'&&!e.repeat){ cycleHeld(1); }
   if(!tableMount&&/^Digit[1-9]$/.test(e.code)&&!e.repeat){ const l=ownedItems(), k=l[+e.code.slice(5)-1]; if(k) holdItem(k); }
@@ -6288,8 +6304,8 @@ $('backBtn3').addEventListener('click',()=>menuPane('main'));
 $('backBtn4').addEventListener('click',()=>menuPane('main'));
 $('partyBtn').addEventListener('click',()=>{ menuPane('party'); partyWebLinks(); });
 $('tasksBtn').addEventListener('click',()=>menuPane('tasks'));
-$('micBtn').addEventListener('click',e=>{ e.stopPropagation(); setMic(!voice.on); });
-$('micMenuBtn').addEventListener('click',()=>setMic(!voice.on));
+$('micBtn').addEventListener('click',e=>{ e.stopPropagation(); setMic(!voice.want); });
+$('micMenuBtn').addEventListener('click',()=>setMic(!voice.want));
 $('backBtnT').addEventListener('click',()=>menuPane('main'));
 $('partyCreate').addEventListener('click',()=>createParty());
 $('partyCodeIn').addEventListener('input',partyWebLinks);
