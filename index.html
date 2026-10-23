@@ -5478,9 +5478,9 @@ function buildWorld(){
   rouletteTable(-5.5,3,0); rouletteTable(5.5,3,Math.PI);
   blackjackTable(-5.5,-6,0); blackjackTable(5.5,-6,Math.PI);
   diceTable(-5.5,-11.5,0);
-  coinFlipTable(-5.5,10.6); coinFlipTable(5.5,10.6); duckRaceStand(0,-6.6); coinFlipTable(-9.2,-3,0); hiloStand(9.2,-3,0);
+  coinFlipTable(-5.5,10.6); coinFlipTable(5.5,10.6); duckRaceStand(0,-6.6); coinFlipTable(-9.2,-3,0); hiloStand(9.2,-3,0); crashStand(9.2,4.8,0);
   penguinStand(0,-5.6,1); kenoStand(-9.2,-3,1); crashStand(9.2,-3,1); plinkoStand(-9.2,4.8,1); hiloStand(9.2,4.8,1);
-  plinkoStand(0,-3,2); hiloStand(0,-8.5,2); dragonStand(-9.2,-3,2); pokerStand(9.2,-3,2); minesStand(-9.2,4.8,2); penguinStand(9.2,4.8,2);
+  plinkoStand(0,-3,2); hiloStand(0,-8.5,2); dragonStand(-9.2,-3,2); pokerStand(9.2,-3,2); minesStand(-9.2,4.8,2); penguinStand(9.2,4.8,2); crashStand(5.5,10.6,2);
   crashStand(0,-3,3); minesStand(0,-8.5,3); kenoStand(-9.2,-3,3); dragonStand(9.2,-3,3); plinkoStand(-9.2,4.8,3); penguinStand(9.2,4.8,3);
   bigSixWall();
   const sp=buildSlotMachines();
@@ -5753,9 +5753,9 @@ const MENU=[
   {type:'coinflip',label:'Coin Flip',note:'floors 1 & 2'},
   {type:'penguin',label:'Penguin Cross',note:'floors 2–4'},
   {type:'keno',label:'Keno',note:'floors 2 & 4'},
-  {type:'crash',label:'Crash',note:'floors 2 & 4'},
+  {type:'crash',label:'Crash',note:'every floor'},
   {type:'plinko',label:'Plinko',note:'floors 2–4'},
-  {type:'hilo',label:'Hi-Lo',note:'floors 2 & 3'},
+  {type:'hilo',label:'Hi-Lo',note:'floors 1–3'},
   {type:'dragon',label:'Dragon Tower',note:'floors 3 & 4'},
   {type:'poker',label:'Video Poker',note:'Penthouse'},
   {type:'mines',label:'Mines',note:'floors 3 & 4'},
