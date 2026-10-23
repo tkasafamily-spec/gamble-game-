@@ -1947,12 +1947,12 @@ function buildPlinko(root,hooks){
 }
 function buildHiLo(root,hooks){
   const H=(hooks&&hooks.table)||{};
-  root.innerHTML='<div class="dc"><div class="hl-card" aria-live="polite">?</div><p class="msg" aria-live="polite">Type your bet on the keypad and press Deal. You get a number from 1 to 10: guess if the next one is higher or lower.</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="lower">Lower</button><button class="btn" type="button" data-a="higher">Higher</button><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="deal">Deal</button></div></div></div>';
+  root.innerHTML='<div class="dc"><div class="hl-card" aria-live="polite">?</div><p class="msg" aria-live="polite">Type your bet on the keypad and press Deal. You get a number from 1 to 10: guess if the next one is higher or lower. It is never the same number twice.</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="lower">Lower</button><button class="btn" type="button" data-a="higher">Higher</button><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="deal">Deal</button></div></div></div>';
   const q=s=>root.querySelector(s), btn=k=>q('[data-a="'+k+'"]'), say=t=>{ q('.msg').textContent=t; };
   chipRack(q('[data-chips]'),true);
   let bet=0,pot=0,card=null,steps=0,wait=false;
   const draw=()=>({v:1+randInt(10)});
-  const odds=(v,dir)=>{ const n=dir==='higher'?10-v:v-1; return n>0?Math.floor(0.97*10/n*100)/100:0; };
+  const odds=(v,dir)=>{ const n=dir==='higher'?10-v:v-1; return n>0?Math.floor(0.97*9/n*100)/100:0; };
   const nm=c=>String(c.v);
   function sync(){ const play=bet>0&&!wait&&card; btn('deal').disabled=bet>0||wait; btn('higher').disabled=!play||card.v===10; btn('lower').disabled=!play||card.v===1; btn('cashout').disabled=!play||steps<1; }
   function show(){ q('.hl-card').textContent=card?nm(card):'?'; sync(); if(H.show) H.show(card,{bet,pot,steps,hi:card&&bet?odds(card.v,'higher'):0,lo:card&&bet?odds(card.v,'lower'):0}); }
@@ -1963,7 +1963,7 @@ function buildHiLo(root,hooks){
   });
   async function guess(dir){
     if(!bet||wait||!card) return; const m=odds(card.v,dir); if(!m) return;
-    wait=true; sync(); const nx=draw(); await sleep(reduceMotion.matches?150:500); sfx.card();
+    wait=true; sync(); let nv=1+randInt(9); if(nv>=card.v) nv++; const nx={v:nv}; await sleep(reduceMotion.matches?150:500); sfx.card();
     const ok=dir==='higher'?nx.v>card.v:nx.v<card.v; card=nx; wait=false;
     if(ok){ pot=Math.floor(pot*m); steps++; say('Yes! '+nm(nx)+'. The pot is now '+money(pot)+'. Keep going or cash out.'); sfx.win(); show(); }
     else { const lost=bet; bet=0; pot=0; steps=0; say(nm(nx)+'. Wrong guess, you lose '+money(lost)+'.'); sfx.lose(); show(); reportRound({game:'hilo',net:-lost}); afterRound(); }
@@ -2131,7 +2131,7 @@ function netErr(e){ const t=e&&e.type; if(t==='browser-incompatible') return WEB
 const party={peer:null,code:null,host:false,conns:new Map(),hostConn:null,members:{},iv:null,avatars:new Map(),guest:null,uid:null,pr:0,base:1000,applied:0,led:{},solo:null,soloKey:null,joinedAt:0,board:null};
 function fmtK(n){ const a=Math.abs(n), sg=n<0?'-':''; if(a>=1e9) return sg+'$'+(a/1e9).toFixed(a>=1e10?0:1)+'B'; if(a>=1e6) return sg+'$'+(a/1e6).toFixed(a>=1e7?0:1)+'M'; if(a>=1e3) return sg+'$'+(a/1e3).toFixed(a>=1e4?0:1)+'K'; return sg+'$'+Math.round(a); }
 function myName(){ return playerName()||party.guest||(party.guest='Guest'+(10+randInt(90))); }
-function selfState(){ return {id:party.peer?party.peer.id:'me',name:myName(),skin:state.skin||0x2f8cf5,shirt:lookOf().shirt,pants:lookOf().pants,feat:lookOf().feat,hat:lookOf().hat,style:lookOf().style,money:state.money,uid:party.uid||'',net:party.uid?myNet():0,pr:party.pr||0,ph:myPh(),fl:state.floor||0,dl:Math.round((state.dayLeft||0)*10)/10,led:party.uid?ledOut():{},floor:loc==='casino'?(state.floor||0):loc==='lobby'?-1:-2,x:Math.round(P.x*100)/100,z:Math.round(P.z*100)/100,yaw:Math.round(P.yaw*100)/100}; }
+function selfState(){ return {id:party.peer?party.peer.id:'me',name:myName(),skin:state.skin||0x2f8cf5,shirt:lookOf().shirt,pants:lookOf().pants,feat:lookOf().feat,hat:lookOf().hat,style:lookOf().style,money:state.money,uid:party.uid||'',net:party.uid?myNet():0,pr:party.pr||0,ph:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?2:myPh(),fl:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?cut.next:(state.floor||0),dl:Math.round((state.dayLeft||0)*10)/10,led:party.uid?ledOut():{},floor:loc==='casino'?(state.floor||0):loc==='lobby'?-1:-2,x:Math.round(P.x*100)/100,z:Math.round(P.z*100)/100,yaw:Math.round(P.yaw*100)/100}; }
 function cleanMember(m){
   if(!m||typeof m!=='object') return null;
   return {id:String(m.id||'').slice(0,80),name:String(m.name||'Player').slice(0,16),skin:Number.isInteger(m.skin)?(m.skin&0xffffff):0xb5e04a,shirt:Number.isInteger(m.shirt)?(m.shirt&0xffffff):null,pants:Number.isInteger(m.pants)?(m.pants&0xffffff):null,feat:Number.isInteger(m.feat)?clamp(m.feat,-1,3):null,hat:HAT_KINDS.includes(m.hat)?m.hat:'none',style:STYLE_KINDS.includes(m.style)?m.style:'none',money:Number.isFinite(m.money)?m.money:0,uid:typeof m.uid==='string'?m.uid.replace(/[^a-z0-9]/g,'').slice(0,16):'',net:Number.isFinite(m.net)?clamp(Math.round(m.net),-1e15,1e15):0,pr:Number.isInteger(m.pr)?clamp(m.pr,0,1e6):0,ph:m.ph===1||m.ph===2?m.ph:0,fl:Number.isInteger(m.fl)?clamp(m.fl,0,FLOORS.length-1):0,dl:Number.isFinite(m.dl)?clamp(m.dl,0,600):0,led:cleanLed(m.led),floor:Number.isInteger(m.floor)?clamp(m.floor,-2,9):0,x:Number.isFinite(m.x)?clamp(m.x,-RW/2,RW/2):0,z:Number.isFinite(m.z)?clamp(m.z,-RD/2,RD/2):0,yaw:Number.isFinite(m.yaw)?m.yaw:0};
@@ -2507,7 +2507,7 @@ function endOfDay(early,forceWin){
 }
 function startCut(kind,o){ unmountTable(); cut=Object.assign({kind,t0:performance.now(),y:0},o||{}); loc='cut'; if(mode!=='paused'&&mode!=='start') mode='cut'; syncHud(); renderDay(); }
 function elevatorRide(next,early){
-  cut={kind:'pre',t0:performance.now()}; if(mode==='walk') mode='cut'; syncHud(); const f=$('fade'); f.classList.add('on'); sfx.fanfare();
+  cut={kind:'pre',t0:performance.now(),next}; if(mode==='walk') mode='cut'; syncHud(); const f=$('fade'); f.classList.add('on'); sfx.fanfare();
   showBig(early?'GOING UP!':'DAY COMPLETE!','You made '+money(state.money)+'. Next stop: '+FLOORS[next].name);
   setTimeout(()=>{ startCut('elev',{next,from:state.floor||0,ding:false}); teleport(EV.x,EV.z+0.45,0); P.pitch=0; evDoors(0); evShow(cut.from+1); hideBig(); f.classList.remove('on'); },1400);
 }
@@ -4808,8 +4808,25 @@ function buildPeople(slotPlacements){
     idlers.forEach(p=>{ const ud=p.userData; ud.phase+=dt; ud.arms[0].rotation.x=-0.25+Math.sin(ud.phase*1.3)*0.12; ud.arms[1].rotation.x=-0.25+Math.sin(ud.phase*1.1+1)*0.12; });
   });
 }
+let fadeSince=0;
+function stuckGuard(){
+  const now=performance.now();
+  if(!cut){
+    if(mode==='cut'){ mode='walk'; syncHud(); }
+    if(loc==='cut'&&world){ loc='lobby'; teleport(LB.x,LB.z+LB.d/2-2,0); lastNearKey='~'; }
+    const f=$('fade'); if(f&&f.classList.contains('on')){ if(!fadeSince) fadeSince=now; else if(now-fadeSince>3500){ f.classList.remove('on'); fadeSince=0; } } else fadeSince=0;
+    return;
+  }
+  fadeSince=0;
+  if(now-cut.t0>25000){
+    const k=cut.kind, n=cut.next; cut=null; hideBig(); $('fade').classList.remove('on');
+    if(k==='elev'&&n!=null) arriveLobbyBetween(n);
+    else if(k==='pit') backToLobby('You got eaten! Walk through the doors to try again.','bad');
+    else { if(mode==='cut') mode='walk'; if(loc==='cut'&&world){ loc='lobby'; teleport(LB.x,LB.z+LB.d/2-2,0); } syncHud(); }
+  }
+}
 function buildHands(){
-  tickers.push(()=>kioskScreensTick());
+  tickers.push(()=>kioskScreensTick()); tickers.push(()=>stuckGuard());
   handScene=new THREE.Scene();
   handScene.add(new THREE.HemisphereLight(0xfff4f8,0x5a4660,1.05));
   const dl=new THREE.DirectionalLight(0xffffff,0.65); dl.position.set(0.4,1,0.6); handScene.add(dl);
