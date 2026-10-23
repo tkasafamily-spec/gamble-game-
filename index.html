@@ -426,7 +426,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 .tablebar .tb-chip{font-size:12px;color:var(--money);font-weight:700}
 .hud-left{position:fixed;z-index:10;top:calc(12px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:8px;pointer-events:none;width:min(250px,calc(50vw - 20px))}
 .hud-left .hud-cash{position:static}
-.tix{font-size:12px;font-weight:700;color:var(--lucky)}
+.tix{font:900 18px/1.2 var(--font-ui);color:#ffd23a;text-shadow:0 2px 0 rgba(0,0,0,.7)}
 .chal{display:flex;flex-direction:column;gap:4px;padding:10px 14px 12px;border-radius:14px;background:var(--hud);box-shadow:inset 0 0 0 1px var(--line);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .chal #chalTitle{font-size:15px}
 .chal small{font-size:12px;color:var(--ink-dim);line-height:1.35}
@@ -467,7 +467,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
   <span class="cash-label">Cash</span>
   <span class="cash-val" data-cash>$2,500</span>
   <span class="quota" id="quotaLine" hidden></span>
-  <span class="betbadge" id="betHud" hidden><small>YOUR BET · TYPE IT ON THE KEYPAD</small><b id="betHudVal">$0</b><small id="betHudTotL" hidden>TOTAL ON THE TABLE</small><b id="betHudTot" hidden>$0</b></span>
+  <span class="betbadge" id="betHud" hidden><small>YOUR BET</small><b id="betHudVal">$0</b><small id="betHudTotL" hidden>TOTAL ON THE TABLE</small><b id="betHudTot" hidden>$0</b></span>
   <span class="perks" id="perks" hidden></span>
   <span class="tix" id="tix" hidden>0 tickets</span>
 </div>
@@ -648,7 +648,7 @@ function freshState(keep){
     chip:'amt',betAmt:(keep&&keep.betAmt)||50,sound:keep&&typeof keep.sound==='boolean'?keep.sound:true,
     rl:{history:[],lucky:1+randInt(36),lastBets:null},bj:{lastBet:0},b6:{lastBets:null,history:[]},dc:{lastBets:null,history:[]},
     look:(keep&&keep.look)||{shirt:0x3dd6ff,pants:0x1c1c22,feat:0,hat:'none'},inRun:false,quotaMet:false,wins:(keep&&keep.wins)||0,items:{},used:{},statueCharges:0,drinkUntil:0,micUntil:0,floor:0,unlocked:0,dizzyUntil:0,
-    day:1,dayLeft:300,tickets:0,chal:null,bestDay:(keep&&keep.bestDay)||1,
+    day:1,dayLeft:300,tickets:3,between:false,chal:null,bestDay:(keep&&keep.bestDay)||1,
     sens:(keep&&keep.sens)||0.0012,fov:(keep&&keep.fov)||72,skin:(keep&&keep.skin)||0x2f8cf5
   };
 }
@@ -690,9 +690,10 @@ function loadState(d){
   if(Number.isFinite(d.dizzyUntil)) s.dizzyUntil=d.dizzyUntil;
   if(Number.isInteger(d.day)&&d.day>=1) s.day=d.day;
   if(Number.isFinite(d.dayLeft)&&d.dayLeft>0) s.dayLeft=Math.min(600,d.dayLeft);
-  if(d.look&&typeof d.look==='object'){ const L=d.look; s.look={shirt:Number.isInteger(L.shirt)?L.shirt&0xffffff:0x3dd6ff,pants:Number.isInteger(L.pants)?L.pants&0xffffff:0x1c1c22,feat:Number.isInteger(L.feat)?clamp(L.feat,-1,3):0,hat:HAT_KINDS.includes(L.hat)?L.hat:'none',style:STYLE_KINDS.includes(L.style)?L.style:'tee'}; }
+  if(d.look&&typeof d.look==='object'){ const L=d.look; s.look={shirt:Number.isInteger(L.shirt)?L.shirt&0xffffff:0x3dd6ff,pants:Number.isInteger(L.pants)?L.pants&0xffffff:0x1c1c22,feat:Number.isInteger(L.feat)?clamp(L.feat,-1,3):0,hat:HAT_KINDS.includes(L.hat)?L.hat:'none',style:STYLE_KINDS.includes(L.style)?(L.style==='tee'&&(L.shirt&0xffffff)===0x3dd6ff?'none':L.style):'none'}; }
   s.inRun=d.inRun===true; s.quotaMet=d.quotaMet===true; if(Number.isInteger(d.wins)) s.wins=d.wins;
   if(Number.isInteger(d.tickets)&&d.tickets>=0) s.tickets=d.tickets;
+  s.between=!!d.between;
   if(Number.isInteger(d.bestDay)) s.bestDay=d.bestDay;
   if(Number.isFinite(d.sens)&&d.sens>0.0001&&d.sens<0.01) s.sens=d.sens;
   if(Number.isFinite(d.fov)&&d.fov>=50&&d.fov<=100) s.fov=d.fov;
@@ -734,7 +735,7 @@ async function hashPw(pw,salt,scheme){
 }
 function take(a){
   a=Math.floor(a); if(a<=0||a>state.money) return false;
-  state.money-=a; renderCash(); save(); return true;
+  state.money-=a; renderCash(); save(); kioskFresh=true; updBetHud(); return true;
 }
 function give(a){
   a=Math.floor(a); if(a<=0) return;
@@ -750,7 +751,7 @@ function renderCash(bump){
     if(bump){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   });
   $('floorName').textContent=(playerName()?playerName()+' · ':'')+(loc==='lobby'?'LOBBY':'DAY '+((state.floor||0)+1)+' · '+FLOORS[state.floor||0].name);
-  renderDay();
+  renderDay(); renderChal();
   renderUpgrades();
   renderChal();
   if(typeof chipLabelTex!=='undefined'&&chipLabelTex[5]) chipLabelTex[5].userData.redraw();
@@ -1245,7 +1246,7 @@ const TPL_BJ=`
     </div>
     <button class="bet-spot" type="button" aria-label="Add the selected chip to your bet"><span class="eyebrow">Bet</span><b data-bet>$0</b><span class="spot-hint">Tap to add a chip</span></button>
   </div>
-  <p class="msg" aria-live="polite">Type your bet on the keypad, tap the bet circle, then deal.</p>
+  <p class="msg" aria-live="polite">Type your bet on the keypad, then press PLAY.</p>
   <div class="rack">
     <div data-chips></div>
     <div class="actions">
@@ -1314,7 +1315,7 @@ function buildBlackjack(root,hooks){
     btn('hit').hidden=!inPlay; btn('stand').hidden=!inPlay; btn('double').hidden=!inPlay;
     btn('clear').disabled=!bet;
     btn('rebet').disabled=!state.bj.lastBet||bet===state.bj.lastBet;
-    btn('deal').disabled=!bet&&!(state.bj.lastBet&&state.bj.lastBet<=state.money);
+    btn('deal').disabled=!bet&&!(chipAmount()>0);
     btn('double').disabled=!(inPlay&&player.length===2&&state.money>=bet);
   }
   function clearTable(){ player=[]; dealer=[]; holeEl=null; holeHidden=true; dealerEl.textContent=''; playerEl.textContent=''; totals(); if(H.clear) H.clear(); }
@@ -1330,9 +1331,9 @@ function buildBlackjack(root,hooks){
     if(phase!=='bet') return;
     ensureAudio();
     if(!bet){
-      const lb=state.bj.lastBet;
-      if(lb&&lb<=state.money&&take(lb)) bet=lb;
-      else { say('Put a bet on the circle first.'); return; }
+      const amt=chipAmount();
+      if(amt>0&&take(amt)) bet=amt;
+      else { say('Type your bet on the keypad first.'); return; }
     }
     state.bj.lastBet=bet; save();
     if(bjShoe.length<60) newShoe();
@@ -1944,7 +1945,7 @@ const FLOORS=[
 ];
 const DAY_SECS=[300,360,420,480];
 const HAT_KINDS=['none','cap','crown','party','tophat','beanie'];
-const STYLE_KINDS=['tee','tux','suit','hoodie','hawaii','stripes'];
+const STYLE_KINDS=['none','tee','tux','suit','hoodie','hawaii','stripes'];
 function partyFactor(){ if(typeof party==='undefined'||!party.code) return 1; const me=party.peer&&party.peer.id; return 1+0.5*Object.keys(party.members).filter(id=>id!==me).length; }
 function dayQuota(f){ if(f==null) f=state.floor||0; return Math.round(FLOORS[f].quota*partyFactor()); }
 function floorMult(){ return FLOORS[(state&&state.floor)||0].mult; }
@@ -1964,7 +1965,8 @@ const CHALS=[
   {id:'big',title:'High roller',desc:q=>'Win '+money(q)+' or more in one round.',need:1,check:(e,q)=>e.net>=q}
 ];
 function newChallenge(){ if(state) state.chal=null; }
-function renderChal(){ $('tix').textContent=state.tickets+' ticket'+(state.tickets===1?'':'s'); }
+function renderChal(){ const t=$('tix'); if(!t||!state) return; t.hidden=false; t.textContent='🎟 '+state.tickets+' ticket'+(state.tickets===1?'':'s'); }
+const itemTix=it=>it.price<=500?1:it.price<=1000?2:it.price<=1800?3:it.price<=2500?4:5;
 function itemPow(){ return state.items.stake?1.5:1; }
 function hasIt(k){ return !!state.items[k]&&!state.used[k]; }
 function useUp(k){ state.used[k]=true; }
@@ -2033,7 +2035,7 @@ function myName(){ return playerName()||party.guest||(party.guest='Guest'+(10+ra
 function selfState(){ return {id:party.peer?party.peer.id:'me',name:myName(),skin:state.skin||0x2f8cf5,shirt:lookOf().shirt,pants:lookOf().pants,feat:lookOf().feat,hat:lookOf().hat,style:lookOf().style,money:state.money,start:party.start,floor:loc==='casino'?(state.floor||0):loc==='lobby'?-1:-2,x:Math.round(P.x*100)/100,z:Math.round(P.z*100)/100,yaw:Math.round(P.yaw*100)/100}; }
 function cleanMember(m){
   if(!m||typeof m!=='object') return null;
-  return {id:String(m.id||'').slice(0,80),name:String(m.name||'Player').slice(0,16),skin:Number.isInteger(m.skin)?(m.skin&0xffffff):0xb5e04a,shirt:Number.isInteger(m.shirt)?(m.shirt&0xffffff):null,pants:Number.isInteger(m.pants)?(m.pants&0xffffff):null,feat:Number.isInteger(m.feat)?clamp(m.feat,-1,3):null,hat:HAT_KINDS.includes(m.hat)?m.hat:'none',style:STYLE_KINDS.includes(m.style)?m.style:'tee',money:Number.isFinite(m.money)?m.money:0,start:Number.isFinite(m.start)?m.start:0,floor:Number.isInteger(m.floor)?clamp(m.floor,-2,9):0,x:Number.isFinite(m.x)?clamp(m.x,-RW/2,RW/2):0,z:Number.isFinite(m.z)?clamp(m.z,-RD/2,RD/2):0,yaw:Number.isFinite(m.yaw)?m.yaw:0};
+  return {id:String(m.id||'').slice(0,80),name:String(m.name||'Player').slice(0,16),skin:Number.isInteger(m.skin)?(m.skin&0xffffff):0xb5e04a,shirt:Number.isInteger(m.shirt)?(m.shirt&0xffffff):null,pants:Number.isInteger(m.pants)?(m.pants&0xffffff):null,feat:Number.isInteger(m.feat)?clamp(m.feat,-1,3):null,hat:HAT_KINDS.includes(m.hat)?m.hat:'none',style:STYLE_KINDS.includes(m.style)?m.style:'none',money:Number.isFinite(m.money)?m.money:0,start:Number.isFinite(m.start)?m.start:0,floor:Number.isInteger(m.floor)?clamp(m.floor,-2,9):0,x:Number.isFinite(m.x)?clamp(m.x,-RW/2,RW/2):0,z:Number.isFinite(m.z)?clamp(m.z,-RD/2,RD/2):0,yaw:Number.isFinite(m.yaw)?m.yaw:0};
 }
 const WEB_MSG="Parties only work on this link when everyone is signed in to Claude. You can still play solo!";
 const hasRTC=()=>typeof RTCPeerConnection!=='undefined';
@@ -2233,7 +2235,8 @@ function startRun(){
   cut={kind:'pre',t0:performance.now()}; if(mode==='walk') mode='cut'; syncHud(); const f=$('fade'); f.classList.add('on');
   tone(523,0,0.2,0.06,'triangle'); tone(784,0.15,0.3,0.06,'triangle');
   setTimeout(()=>{
-    state.inRun=true; state.floor=0; state.dayLeft=DAY_SECS[0]; state.quotaMet=false; setFloor(0); save();
+    if(state.inRun&&state.between){ state.between=false; save(); arriveFloor(state.floor||0); return; }
+    state.inRun=true; state.floor=0; state.dayLeft=DAY_SECS[0]; state.quotaMet=false; state.between=false; setFloor(0); save();
     arriveCasino();
   },700);
 }
@@ -2266,7 +2269,7 @@ function endOfDay(early){
   if(cut||loc!=='casino') return;
   unmountTable(); if(current) closeGame(false);
   const F=state.floor||0, q=dayQuota(F);
-  if(state.money>=q){ if(F>=FLOORS.length-1) winRun(); else elevatorRide(F+1,early); }
+  if(state.money>=q){ if(F>=FLOORS.length-1) winRun(); else { const earned=3+Math.max(0,Math.min(3,Math.floor((state.money/q-1)/0.25))); state.tickets=(state.tickets||0)+earned; state.lastEarned=earned; save(); elevatorRide(F+1,early); } }
   else deathRide(q);
 }
 function startCut(kind,o){ unmountTable(); cut=Object.assign({kind,t0:performance.now(),y:0},o||{}); loc='cut'; if(mode!=='paused'&&mode!=='start') mode='cut'; syncHud(); renderDay(); }
@@ -2285,6 +2288,12 @@ function winRun(){
   const total=state.money; showBig('YOU BEAT THE CASINO! 🏆','You cleared all 4 floors with '+money(total)+'!');
   setTimeout(()=>{ const w=(state.wins||0)+1; backToLobby('You won! Wins so far: '+w+'. Walk through the doors to go again.','win'); state.wins=w; save(); },4500);
 }
+function arriveLobbyBetween(n){
+  cut=null; state.floor=n; state.between=true; state.quotaMet=false; setFloor(n); save();
+  loc='lobby'; teleport(LB.x,LB.z+LB.d/2-2,0); if(mode==='cut') mode='walk'; syncHud(); lastNearKey='~';
+  renderCash(true); renderDay(); $('fade').classList.remove('on'); if(world) syncShopItems();
+  showBig('DAY '+n+' DONE! +'+(state.lastEarned||3)+' 🎟','You have '+state.tickets+' tickets. Shop in the lobby, then walk through the doors for Floor '+(n+1)+'.'); setTimeout(()=>{ if(loc==='lobby'&&!cut) hideBig(); },4200);
+}
 function arriveFloor(i){
   cut=null; setFloor(i); state.dayLeft=DAY_SECS[i]; state.quotaMet=false; loc='casino'; teleport(-5.6,RD/2-2.4,0);
   if(mode==='cut') mode='walk'; syncHud(); lastNearKey='~'; save(); renderCash(true); renderDay(); $('fade').classList.remove('on');
@@ -2298,7 +2307,7 @@ function cutTick(dt){
     if(t>2.1&&!cut.ding){ cut.ding=true; evShow(cut.next+1); tone(1320,0,0.5,0.08,'sine'); tone(1760,0.12,0.6,0.06,'sine'); }
     evDoors(clamp((t-3.3)/0.8,0,1));
     camera.position.set(P.x+Math.sin(t*40)*sh,EYE+Math.sin(t*33)*sh,P.z); camera.rotation.set(P.pitch,P.yaw,0);
-    if(t>4.4&&!cut.out){ cut.out=true; $('fade').classList.add('on'); const n=cut.next; setTimeout(()=>arriveFloor(n),500); }
+    if(t>4.4&&!cut.out){ cut.out=true; $('fade').classList.add('on'); const n=cut.next; setTimeout(()=>arriveLobbyBetween(n),500); }
   } else if(cut.kind==='pit'){
     const y=t<1.3?0:-Math.min(2.3,(t-1.3)*1.15); cut.y=y;
     const camY=EYE+y, J=PIT_JUMP;
@@ -2324,7 +2333,7 @@ const PIT_JUMP={t0:3.0,t1:4.25};
 
 /* ---- you, the mirror and the dress-up closet ---- */
 let meAvatar=null, mirror=null; const lobbyTargets=[];
-function lookOf(){ const L=state.look||{}; return {skin:state.skin||0x2f8cf5,shirt:L.shirt!=null?L.shirt:0x3dd6ff,pants:L.pants!=null?L.pants:0x1c1c22,feat:L.feat!=null?L.feat:-1,hat:L.hat||'none',style:STYLE_KINDS.includes(L.style)?L.style:'tee'}; }
+function lookOf(){ const L=state.look||{}; return {skin:state.skin||0x2f8cf5,shirt:L.shirt!=null?L.shirt:0x3dd6ff,pants:L.pants!=null?L.pants:0x1c1c22,feat:L.feat!=null?L.feat:-1,hat:L.hat||'none',style:STYLE_KINDS.includes(L.style)?L.style:'none'}; }
 function rebuildMe(){
   if(!scene) return;
   if(meAvatar) scene.remove(meAvatar);
@@ -2341,7 +2350,7 @@ function dressOpts(){ return {
   shirt:[0x3dd6ff,0xff5a8a,0xffd23a,0x9b5cff,0x3ee07a,0xff8a2a,0xf4f1ea,0x15151a,0xd42a2a,0x2a4fd0],
   pants:[0x1c1c22,0x2a4fd0,0x7a1424,0x3a3a48,0x0b5a62,0xf4f1ea,0x5a3a1c,0x9b5cff],
   feat:[[0,'EARS'],[1,'ANTENNA'],[2,'HORNS'],[3,'HAIR'],[-1,'NONE']],
-  style:[['tee','T-SHIRT'],['tux','TUXEDO'],['suit','SUIT'],['hoodie','HOODIE'],['hawaii','HAWAII'],['stripes','STRIPES']],
+  style:[['none','NONE'],['tee','T-SHIRT'],['tux','TUXEDO'],['suit','SUIT'],['hoodie','HOODIE'],['hawaii','HAWAII'],['stripes','STRIPES']],
   hat:[['none','NONE'],['cap','CAP'],['crown','CROWN'],['party','PARTY'],['tophat','TOP HAT'],['beanie','BEANIE']] }; }
 const DRESS_ROWS=[['skin','SKIN',96],['style','OUTFIT',196],['shirt','COLOUR',296],['pants','PANTS',396],['feat','HEAD',496],['hat','HAT',596]];
 let dressTex=null, dressHover=null;
@@ -2457,7 +2466,7 @@ function buildLobby(){
   box(3.0,0.012,6.5,lamb(0xb3202b),X,0.008,dz+3.5);
   [-1.6,1.6].forEach(o=>{ for(let k=0;k<3;k++){ const z=dz+1.4+k*2.2; cyl(0.03,0.04,0.95,8,M.gold,X+o,0.475,z,undefined); mesh(geo('postTop',()=>new THREE.SphereGeometry(0.05,10,8)),M.gold,X+o,0.97,z); } });
   neonSign('CASINO',{font:'800 96px '+UI,color:'#ffe08a',glow:'#ff4d3a',board:true,w:512,h:128,spacing:'8px'},X,4.15,dz+0.24,0,2.6,0.65);
-  neonSign('FLOOR 1 · DAY 1',{font:'800 44px '+UI,color:'#9ff3ff',glow:'#2a8cff',w:512,h:80},X,3.75,dz+0.32,0,1.8,0.28);
+  neonSign('WALK IN TO PLAY',{font:'800 44px '+UI,color:'#9ff3ff',glow:'#2a8cff',w:512,h:80},X,3.75,dz+0.32,0,1.8,0.28);
   const doorX=X;
   buildLoanShark(X+W/2-1.5,Z-5.4,-Math.PI/2);
   neonSign('LOAN SHARK',{font:'800 64px '+UI,color:'#9ff3ff',glow:'#2a8cff',board:true,w:512,h:110,spacing:'5px'},X+W/2-0.06,3.9,Z-5.4,-Math.PI/2,2.0,0.43);
@@ -2469,10 +2478,10 @@ function buildLobby(){
   neonSign('← CASINO',{font:'800 70px '+UI,color:'#ffe08a',glow:'#ff9a2a',board:true,w:512,h:128,spacing:'4px'},X+W/2-0.06,2.8,Z-1,-Math.PI/2,2.2,0.55);
   const rules=canvasTex(512,640,(g,w,h)=>{ g.fillStyle='rgba(12,8,20,.94)'; rrect(g,6,6,w-12,h-12,24); g.fill(); g.strokeStyle='#ffd23a'; g.lineWidth=6; rrect(g,14,14,w-28,h-28,18); g.stroke();
     g.textAlign='center'; g.fillStyle='#ffd23a'; g.font='900 46px '+UI; g.fillText('HOW IT WORKS',w/2,74); g.textAlign='left'; g.fillStyle='#fff'; g.font='700 25px '+UI;
-    ['Ring the Loan Shark.','Walk through the doors.','Each floor is one day.','Make the money in time.','Made it? Elevator up.','Didn\'t? LOOK DOWN 😱','Floor 1: $5,000 in 5:00','Floor 2: $50K in 6:00','Floor 3: $1M in 7:00','Floor 4: $10M in 8:00','With friends: +50% each'].forEach((l,i)=>g.fillText(l,40,130+i*40)); },{text:true});
-  mesh(new THREE.PlaneGeometry(1.6,2.0),new THREE.MeshBasicMaterial({map:rules,toneMapped:false}),X+W/2-0.07,2.45,Z+3).rotation.y=-Math.PI/2;
+    ['Ring the Loan Shark.','Buy items with 🎟 tickets.','Walk through the doors.','Each floor is one day.','Make the money in time.','Made it? Elevator up.','Didn\'t? LOOK DOWN 😱','Floor 1: $5,000 in 5:00','Floor 2: $50K in 6:00','Floor 3: $1M in 7:00','Floor 4: $10M in 8:00','With friends: +50% each'].forEach((l,i)=>g.fillText(l,40,130+i*40)); },{text:true});
+  mesh(new THREE.PlaneGeometry(1.6,2.0),new THREE.MeshBasicMaterial({map:rules,toneMapped:false}),X+W/2-0.07,2.45,Z+8.3).rotation.y=-Math.PI/2;
   buildDressUp(X-W/2,X,Z,H); mirror.hide.push(westWall);
-  [[X+W/2-0.8,Z+5],[X+W/2-0.8,Z+1]].forEach(([x,z])=>{ box(1.0,0.45,2.2,lamb(0x7a1424),x,0.225,z); box(0.3,0.6,2.2,lamb(0x5a0e1a),x+0.35,0.6,z); boxCollider(0,0,0,x-0.5,x+0.5,z-1.1,z+1.1); });
+  buildLobbyShops(X,Z,W);
   [[X-W/2+0.8,dz+1.2],[X+W/2-0.8,dz+1.2],[X-W/2+0.8,Z+D/2-1],[X+W/2-0.8,Z+D/2-1]].forEach(([x,z])=>{ cyl(0.28,0.22,0.5,10,lamb(0x8a5a2a),x,0.25,z); mesh(geo('lobPlant',()=>new THREE.IcosahedronGeometry(0.5,0)),lamb(0x2fbf55),x,1.0,z).scale.set(1,1.4,1); });
   stations.push({type:'casinodoor',label:'Walk through the doors to start Day 1',x:X,z:dz+1.5,tx:X,tz:dz});
   tickers.push(()=>{ if(loc==='lobby'&&mode==='walk'&&!cut&&P.z<dz+1.0&&Math.abs(P.x-X)<1.3) startRun(); });
@@ -3718,16 +3727,30 @@ function buildShopItems(SX,SZ,list,dir){
     const g=new THREE.Group(); g.position.set(SX-dir*row*0.3,row?1.8:1.21,SZ+dz); scene.add(g);
     cyl(0.13,0.15,0.05,16,M.black,0,0.025,0,g);
     const holder=new THREE.Group(); holder.position.y=0.05; g.add(holder); (ITEM_MODELS[k]||ITEM_MODELS.mystery)(holder);
-    const tex=canvasTex(320,120,(gg,w,h)=>{ gg.clearRect(0,0,w,h); gg.fillStyle='rgba(14,7,9,.88)'; rrect(gg,4,4,w-8,h-8,20); gg.fill(); gg.fillStyle='#ffd27a'; let fs=30; gg.font='800 '+fs+'px '+UI; while(gg.measureText(it.name).width>w-24&&fs>16){ fs-=2; gg.font='800 '+fs+'px '+UI; } gg.textAlign='center'; gg.textBaseline='middle'; gg.fillText(it.name,w/2,40); gg.fillStyle='#3ee07a'; gg.font='800 38px '+UI; gg.fillText(money(it.price*floorMult()),w/2,84); },{text:true});
+    const tex=canvasTex(320,120,(gg,w,h)=>{ gg.clearRect(0,0,w,h); gg.fillStyle='rgba(14,7,9,.88)'; rrect(gg,4,4,w-8,h-8,20); gg.fill(); gg.fillStyle='#ffd27a'; let fs=30; gg.font='800 '+fs+'px '+UI; while(gg.measureText(it.name).width>w-24&&fs>16){ fs-=2; gg.font='800 '+fs+'px '+UI; } gg.textAlign='center'; gg.textBaseline='middle'; gg.fillText(it.name,w/2,40); gg.fillStyle='#3ee07a'; gg.font='800 38px '+UI; gg.fillText('🎟 '+itemTix(it)+' ticket'+(itemTix(it)>1?'s':''),w/2,84); },{text:true});
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,toneMapped:false})); sp.scale.set(0.36,0.135,1); sp.position.set(dir*0.18,row?0.42:0.36,0); g.add(sp); shopTags.push(tex);
     const meshes=[]; holder.traverse(o=>{ if(o.isMesh) meshes.push(o); });
-    const ud={hold:k,label:()=>state.items[k]?null:'Hold E to buy the '+it.name+' for '+money(it.price*floorMult())+'. '+it.desc};
+    const ud={hold:k,label:()=>state.items[k]?null:'Hold E to buy the '+it.name+' for '+itemTix(it)+' 🎟. '+it.desc};
     meshes.forEach(m=>{ m.userData=ud; });
     shopItems[k]={g,meshes};
     tickers.push(t=>{ holder.rotation.y=t*0.0008+dz; });
   });
   box(0.42,0.04,4.3,M.darkWood,SX-dir*0.3,1.78,SZ);
   [-2,2].forEach(z=>box(0.05,0.6,0.05,M.gold,SX-dir*0.3,1.49,SZ+z));
+}
+function buildLobbyShops(X,Z,W){
+  const CX=X+W/2-1.75;
+  [[ -0.7,'LUCKY SHOP','#e3b8ff','#a64dff',ITEMS.slice(0,10),0x5d2b8a],[4.5,'ITEM SHOP','#9ff3ff','#2ad4ff',ITEMS.slice(10),0x0b5a62]].forEach(([cz,name,col,glow,list,vest])=>{
+    box(1.0,1.15,4.4,M.wood,CX,0.575,Z+cz); box(1.1,0.06,4.5,M.marble,CX,1.18,Z+cz);
+    box(0.08,2.9,4.6,M.darkWood,X+W/2-0.06,1.45,Z+cz);
+    [-2.25,2.25].forEach(o=>box(1.9,0.12,0.12,M.gold,CX+0.9,2.9,Z+cz+o));
+    const sk=person({shirt:0xf2efe6,vest,pants:0x15151a,skin:pickSkin(),h:1.7,bow:true}); sk.position.set(CX+1.0,0,Z+cz); sk.rotation.y=-Math.PI/2; scene.add(sk); idlers.push(sk);
+    neonSign(name,{font:'800 66px '+UI,color:col,glow,board:true,w:512,h:128,spacing:'5px'},X+W/2-0.12,3.35,Z+cz,-Math.PI/2,2.4,0.6);
+    boxCollider(0,0,0,CX-0.55,X+W/2,Z+cz-2.3,Z+cz+2.3);
+    buildShopItems(CX,Z+cz,list.map(i=>i.k),-1);
+  });
+  const tt=canvasTex(512,140,(c,w,h)=>{ c.fillStyle='rgba(12,8,20,.92)'; rrect(c,4,4,w-8,h-8,20); c.fill(); c.strokeStyle='#ffd23a'; c.lineWidth=5; rrect(c,12,12,w-24,h-24,14); c.stroke(); c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='#ffd23a'; c.font='900 40px '+UI; c.fillText('🎟 SHOP WITH TICKETS',w/2,52); c.fillStyle='#fff'; c.font='700 26px '+UI; c.fillText('Make the quota to earn more',w/2,100); },{text:true});
+  mesh(geo('lbTixSign',()=>new THREE.PlaneGeometry(1.6,0.44)),new THREE.MeshBasicMaterial({map:tt,toneMapped:false}),X+W/2-0.11,3.95,Z+1.9).rotation.y=-Math.PI/2;
 }
 function buildItemVault(){
   const CX=VAULT_POS.x, CZ=VAULT_POS.z;
@@ -3750,9 +3773,9 @@ function grantItem(k){
 }
 function buyItem(k){
   const it=ITEMS.find(x=>x.k===k); if(!it||state.items[k]) return;
-  const cost=it.price*floorMult();
-  if(state.money<cost){ toast('You need '+money(cost)+' for the '+it.name+'.','bad'); return; }
-  take(cost); grantItem(k);
+  const cost=itemTix(it);
+  if((state.tickets||0)<cost){ toast('You need '+cost+' 🎟 tickets for the '+it.name+'. Make the quota to earn more!','bad'); return; }
+  state.tickets-=cost; renderChal(); grantItem(k);
   let msg='You got the '+it.name+'! '+it.desc;
   if(k==='mystery'){ useUp('mystery'); const pool=ITEMS.filter(x=>x.k!=='mystery'&&!state.items[x.k]); if(pool.length){ const w=pool[randInt(pool.length)]; grantItem(w.k); msg='Mystery Box: you got the '+w.name+'! '+w.desc; } else msg='Mystery Box: it was empty, you already own everything!'; }
   if(k==='soda') useUp('soda');
@@ -3781,17 +3804,6 @@ function buildExtras(){
   neonSign('ELEVATOR',{font:'800 70px '+UI,color:'#ffe08a',glow:'#ff9a2a',board:true,w:512,h:128,spacing:'6px'},0,3.75,0.35,0,2.0,0.5,e);
   boxCollider(-5.6,RD/2,Math.PI,-1.3,1.3,0,0.35);
   stations.push({type:'elevator',label:'Take the elevator',x:-5.6,z:RD/2-1.5,tx:-5.6,tz:RD/2});
-  const SX=SHOP_POS.x, SZ=SHOP_POS.z;
-  box(1.0,1.15,4.4,M.wood,SX,0.575,SZ); box(1.1,0.06,4.5,M.marble,SX,1.18,SZ);
-  box(1.0,0.55,4.4,M.darkWood,SX,2.75,SZ);
-  box(4.0,3.0,0.15,M.darkWood,SX-2,1.5,SZ-2.25); box(4.0,3.0,0.15,M.darkWood,SX-2,1.5,SZ+2.25);
-  [[0x2f9a4a,-1.2],[0xefcd78,-0.4],[0x5fd6ea,0.4],[0xe9e4d6,1.2]].forEach(([c,dz])=>{ box(0.3,0.3,0.3,lamb(c),-RW/2+0.4,1.45,SZ+dz); box(0.3,0.3,0.3,lamb(c),-RW/2+0.4,2.05,SZ+dz-0.4); });
-  box(0.4,0.04,4.2,M.gold,-RW/2+0.4,1.28,SZ); box(0.4,0.04,4.2,M.gold,-RW/2+0.4,1.88,SZ);
-  const sk=person({shirt:0xf2efe6,vest:0x5d2b8a,pants:0x15151a,skin:pickSkin(),hair:pickHair(),h:1.7,bow:true,long:true}); sk.position.set(SX-1.2,0,SZ); sk.rotation.y=Math.PI/2; scene.add(sk); idlers.push(sk);
-  neonSign('LUCKY SHOP',{font:'800 66px '+UI,color:'#e3b8ff',glow:'#a64dff',board:true,w:512,h:128,spacing:'5px'},SX+0.53,2.75,SZ,Math.PI/2,2.4,0.6);
-  boxCollider(0,0,0,-RW/2,SX+0.55,SZ-2.35,SZ+2.35);
-  stations.push({type:'shop',label:'Look at a charm and hold E to buy it',x:SX+1.4,z:SZ,tx:SX,tz:SZ});
-  buildShopItems(SX,SZ,ITEMS.slice(0,10).map(i=>i.k),1);
 
 }
 
@@ -4277,7 +4289,7 @@ function shapeGeo(pts){ const sh=new THREE.Shape(); pts.forEach(([x,y],i)=>i?sh.
 const beanMats={}; function beanMat(c){ if(!beanMats[c]){ const m=smooth({color:c,specular:0x5a5a5a,shininess:60}); m.userData.keepShine=true; beanMats[c]=m; } return beanMats[c]; }
 const beanLine=new THREE.MeshBasicMaterial({color:0x1a0f26,side:THREE.BackSide});
 // characters copied from the cover: soft rounded-square blobs, black oval eyes, big D smile with a tongue, stubby arms, sticker outline
-const BLOB={W:0.66,H:1.14,D:0.54,E1:0.5,E2:0.62,LEG:0.15};
+const BLOB={W:0.74,H:1.04,D:0.58,E1:0.5,E2:0.62,LEG:0.13};
 const BLOB_CY=BLOB.LEG+BLOB.H/2, BLOB_TOP=BLOB.LEG+BLOB.H;
 const spw=(v,e)=>Math.sign(v)*Math.pow(Math.abs(v),e);
 function blobGeo(key,W,H,D,y0n,y1n){
@@ -4294,31 +4306,32 @@ function decalGeo(key,pts,cy,pad){ return geo(key,()=>{ const gm=shapeGeo(pts), 
 function capsuleGeo(key,r,len){ return geo(key,()=>{ const pts=[]; for(let k=0;k<=8;k++){ const a=-Math.PI/2+Math.PI/2*k/8; pts.push(new THREE.Vector2(Math.cos(a)*r,-len+Math.sin(a)*r)); } for(let k=0;k<=8;k++){ const a=Math.PI/2*k/8; pts.push(new THREE.Vector2(Math.cos(a)*r,Math.sin(a)*r)); } pts[0].x=0; pts[pts.length-1].x=0; const g=new THREE.LatheGeometry(pts,24); g.computeVertexNormals(); return g; }); }
 function person(o){
   const g=new THREE.Group(), legs=[], arms=[];
-  const style=o.vest?'staff':(STYLE_KINDS.includes(o.style)?o.style:'tee'), shirtCol=o.shirt!=null?o.shirt:0x3dd6ff;
+  const style=o.vest?'bow':(STYLE_KINDS.includes(o.style)?o.style:'none'), shirtCol=o.shirt!=null?o.shirt:0x3dd6ff, plain=style==='none'||style==='bow';
   const skinC=o.skin||pickSkin(), skin=beanMat(skinC), dark=beanMat(0x141016);
   const {W,H,D}=BLOB;
   mesh(blobGeo('blobBody',W,H,D),skin,0,BLOB_CY,0,g);
   const ol=mesh(blobGeo('blobBody',W,H,D),beanLine,0,BLOB_CY,0,g); ol.scale.set(1.05,1.03,1.06);
   // clothes: pants on the bottom, shirt band above
-  const pantsC=o.pants!=null?o.pants:0x1c1c22, pantsM=beanMat(pantsC), P=0.014;
+  const pantsC=o.pants!=null?o.pants:0x1c1c22, pantsM=plain?skin:beanMat(pantsC), P=0.014;
   const yn=y=>(y-BLOB_CY)/(BLOB.H/2+P);
-  mesh(blobGeo('blobPants',W+2*P,H+2*P,D+2*P,-1,yn(BLOB.LEG+0.17)),pantsM,0,BLOB_CY,0,g);
+  if(!plain) mesh(blobGeo('blobPants',W+2*P,H+2*P,D+2*P,-1,yn(BLOB.LEG+0.17)),pantsM,0,BLOB_CY,0,g);
   const shirtM=style==='staff'?beanMat(0xf4f1ea):(style==='hawaii'||style==='stripes')?patternMat(style,shirtCol):beanMat(style==='tux'?0x15151a:shirtCol);
   const sy0=BLOB.LEG+0.15, sy1=BLOB.LEG+0.56;
-  mesh(blobGeo('blobShirt',W+2*P*1.6,H+2*P*1.6,D+2*P*1.6,(sy0-BLOB_CY)/(BLOB.H/2+P*1.6),(sy1-BLOB_CY)/(BLOB.H/2+P*1.6)),shirtM,0,BLOB_CY,0,g);
+  if(!plain) mesh(blobGeo('blobShirt',W+2*P*1.6,H+2*P*1.6,D+2*P*1.6,(sy0-BLOB_CY)/(BLOB.H/2+P*1.6),(sy1-BLOB_CY)/(BLOB.H/2+P*1.6)),shirtM,0,BLOB_CY,0,g);
   if(style==='staff'&&o.vest){ const VP=P*2.6; mesh(blobGeo('blobVest',W+2*VP,H+2*VP,D+2*VP,(sy0+0.03-BLOB_CY)/(BLOB.H/2+VP),(sy1-0.06-BLOB_CY)/(BLOB.H/2+VP)),beanMat(o.vest),0,BLOB_CY,0,g); }
-  dressBlob(g,style,shirtCol,sy1);
+  if(!plain) dressBlob(g,style,shirtCol,sy1);
   // stubby legs
   [-0.15,0.15].forEach(x=>{ const L=new THREE.Group(); L.position.set(x,BLOB.LEG+0.04,0); const lg=new THREE.Mesh(capsuleGeo('blobLeg',0.085,0.1),pantsM); L.add(lg);
     const f=new THREE.Mesh(geo('blobFoot',()=>new THREE.SphereGeometry(0.09,20,14)),dark); f.scale.set(1.05,0.62,1.35); f.position.set(0,-0.15,0.035); L.add(f); g.add(L); legs.push(L); });
   // face: plain black ovals + big D smile with a pink tongue
-  const ey=BLOB_CY+0.25;
-  [-1,1].forEach(sd=>{ const x=sd*0.115; const e=mesh(geo('blobEye',()=>new THREE.SphereGeometry(0.05,24,18)),beanMat(0x0b090e),x,ey,blobFrontZ(x,ey,-0.012),g); e.scale.set(0.82,1.42,0.45); });
-  const my=BLOB_CY+0.16, MW=0.14, MD=0.145;
+  const ey=BLOB_CY+0.21;
+  [-1,1].forEach(sd=>{ const x=sd*0.135; const e=mesh(geo('blobEye2',()=>new THREE.SphereGeometry(0.056,24,18)),beanMat(0x0b090e),x,ey,blobFrontZ(x,ey,-0.013),g); e.scale.set(0.8,1.45,0.45); });
+  const my=BLOB_CY+0.115, MW=0.16, MD=0.16;
   const mouthPts=[[-MW,0.004],[MW,0.004]].concat(Array.from({length:19},(_,k)=>{ const a=Math.PI*k/18; return [Math.cos(a)*MW,-Math.sin(a)*MD]; }));
-  const mouth=new THREE.Mesh(decalGeo('blobMouth2',mouthPts,my,0.006),beanMat(0x2a0b12)); mouth.position.y=my; g.add(mouth);
-  const tPts=Array.from({length:15},(_,k)=>{ const a=Math.PI*k/14; return [Math.cos(a)*0.092,-MD+0.006+Math.sin(a)*0.082]; });
-  const tongue=new THREE.Mesh(decalGeo('blobTongue2',tPts,my,0.01),beanMat(0xff6fa8)); tongue.position.y=my; g.add(tongue);
+  const mouth=new THREE.Mesh(decalGeo('blobMouth3',mouthPts,my,0.006),beanMat(0x2a0b12)); mouth.position.y=my; g.add(mouth);
+  const tPts=Array.from({length:15},(_,k)=>{ const a=Math.PI*k/14; return [Math.cos(a)*0.1,-MD+0.006+Math.sin(a)*0.09]; });
+  if(style==='bow'){ const bc=beanMat(0xd42a35), by=my-MD-0.075, bz=blobFrontZ(0,by,0.02); [-1,1].forEach(sd=>{ const w=mesh(geo('blBowW',()=>new THREE.ConeGeometry(0.05,0.08,4)),bc,sd*0.045,by,bz,g); w.rotation.z=sd*Math.PI/2; w.scale.set(1,1,0.5); }); mesh(geo('blBowK',()=>new THREE.SphereGeometry(0.022,10,8)),bc,0,by,bz+0.006,g); }
+  const tongue=new THREE.Mesh(decalGeo('blobTongue3',tPts,my,0.01),beanMat(0xff6fa8)); tongue.position.y=my; g.add(tongue);
   // head bits sit on top
   const head=new THREE.Group(); head.position.set(0,BLOB_TOP-0.2,0); head.scale.setScalar(1.22); g.add(head);
   const acc=lamb(o.hair||pickHair()), feat=o.bald?-1:(o.feat!=null?o.feat:-1), G=personGeos();
@@ -4328,14 +4341,14 @@ function person(o){
   else if(feat===3) mesh(G.tuft,acc,0.02,0.2,-0.02,head).scale.set(1.1,0.55,1);
   if(o.hat&&o.hat!=='none') addHat(head,o.hat,o.hatCol||shirtCol);
   // thick stubby arms with rounded ends, sticking out like the cover
-  const longSl=style==='tux'||style==='suit'||style==='hoodie'||style==='staff';
-  [-1,1].forEach(sd=>{ const A=new THREE.Group(); A.position.set(sd*(W/2-0.04),BLOB.LEG+0.5,0); g.add(A);
+  const longSl=style==='tux'||style==='suit'||style==='hoodie', upArm=(o.armUp!=null?o.armUp:(skinC>>3)%2)?1:-1;
+  [-1,1].forEach(sd=>{ const A=new THREE.Group(); A.position.set(sd*(W/2-0.05),BLOB_CY+0.07,0); g.add(A);
     const arm=new THREE.Mesh(capsuleGeo('blobArm',0.078,0.3),longSl?shirtM:skin); A.add(arm);
     const aol=new THREE.Mesh(capsuleGeo('blobArm',0.078,0.3),beanLine); aol.scale.set(1.12,1.04,1.12); A.add(aol);
     if(longSl){ const tip=new THREE.Mesh(geo('blobTip',()=>new THREE.SphereGeometry(0.079,20,14,0,TAU,Math.PI/2,Math.PI/2)),o.bow?beanMat(0xffffff):skin); tip.position.y=-0.3; A.add(tip);
       const cf=new THREE.Mesh(geo('blobCuff',()=>new THREE.CylinderGeometry(0.083,0.083,0.04,20)),style==='hoodie'?beanMat(shadeHex(shirtCol,0.72)):beanMat(0xf6f3ec)); cf.position.y=-0.28; A.add(cf); }
-    else { const sl=new THREE.Mesh(geo('blobSleeve',()=>new THREE.CylinderGeometry(0.086,0.086,0.11,20)),shirtM); sl.position.y=-0.04; A.add(sl); }
-    A.rotation.z=sd*1.1; arms.push(A); });
+    else if(!plain){ const sl=new THREE.Mesh(geo('blobSleeve',()=>new THREE.CylinderGeometry(0.086,0.086,0.11,20)),shirtM); sl.position.y=-0.04; A.add(sl); }
+    A.rotation.z=sd*(sd===upArm?2.55:1.95); arms.push(A); });
   g.scale.setScalar((o.h||1.4)/1.5);
   g.userData={legs,arms,phase:Math.random()*TAU};
   return g;
@@ -5038,7 +5051,7 @@ function buildWorld(){
   crashStand(0,-3,3); minesStand(0,-8.5,3); kenoStand(-9.2,-3,3); dragonStand(9.2,-3,3); plinkoStand(-9.2,4.8,3); penguinStand(9.2,4.8,3);
   bigSixWall();
   const sp=buildSlotMachines();
-  buildBar(); buildItemVault(); buildCenterpiece(); buildExtras(); buildDecor();
+  buildBar(); buildCenterpiece(); buildExtras(); buildDecor();
   buildLobby(); buildElevatorCab(); buildPit();
   buildPeople(sp); buildHands();
   tickers.push((t,dt)=>partyTick(dt));
@@ -5269,7 +5282,7 @@ let lastNearKey='', hoverHit=null, hoverBtn=null;
 let lastHoverUd=null;
 function updatePrompt(){
   hoverHit=null;
-  const plist=loc==='lobby'?lobbyTargets:(Math.hypot(P.x-SHOP_POS.x,P.z-SHOP_POS.z)<3.4||Math.hypot(P.x-VAULT_POS.x,P.z-VAULT_POS.z)<3.4)?clickTargets.concat(shopTargets):clickTargets;
+  const plist=loc==='lobby'?lobbyTargets.concat(shopTargets):clickTargets;
   if(mode==='walk'&&plist.length) hoverHit=pickAt(window.innerWidth/2,window.innerHeight/2,plist);
   holdTick();
   const ud=hoverHit&&hoverHit.object.userData;
@@ -5300,7 +5313,6 @@ const MENU=[
   {type:'bigsix',label:'Big Six Wheel',note:'back wall'},
   {type:'dice',label:'Over / Under 7',note:'dice'},
   {type:'duckrace',label:'Duck Race',note:'middle of Main Floor'},
-  {type:'shop',label:'Shops',note:'20 items'},
   {type:'coinflip',label:'Coin Flip',note:'floors 1 & 2'},
   {type:'penguin',label:'Penguin Cross',note:'floors 2–4'},
   {type:'keno',label:'Keno',note:'floors 2 & 4'},
@@ -5466,7 +5478,7 @@ function applyState(next){
   state=next; save();
   if(world){
     setFloor(Math.min(state.floor||0,FLOORS.length-1)); syncShopItems(); syncChipButtons();
-    if(state.inRun){ loc='casino'; teleport(0,RD/2-2.5,0); } else { loc='lobby'; teleport(LB.x,LB.z+LB.d/2-2,0); }
+    if(state.inRun&&!state.between){ loc='casino'; teleport(0,RD/2-2.5,0); } else { loc='lobby'; teleport(LB.x,LB.z+LB.d/2-2,0); }
     rebuildMe();
     if(camera){ camera.fov=state.fov||72; camera.updateProjectionMatrix(); }
   }
@@ -5550,7 +5562,7 @@ async function boot(data){
   }catch(e){}
   try{ buildWorld(); world=true; setFloor(Math.min(state.floor||0,state.unlocked||0)); syncShopItems(); }
   catch(err){ console.error(err); world=false; showFallback('The 3D floor hit a problem ('+((err&&err.message)||'unknown')+').'); requestAnimationFrame(loop); return; }
-  if(state.inRun){ loc='casino'; teleport(0,RD/2-2.5,0); } else { loc='lobby'; teleport(LB.x,LB.z+LB.d/2-2,0); }
+  if(state.inRun&&!state.between){ loc='casino'; teleport(0,RD/2-2.5,0); } else { loc='lobby'; teleport(LB.x,LB.z+LB.d/2-2,0); }
   renderCash(); renderDay();
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>redraws.forEach(f=>f())).catch(()=>{});
   $('enterBtn').disabled=false; $('enterBtn').textContent='Enter the casino';
