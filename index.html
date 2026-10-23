@@ -550,7 +550,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
         <button class="mbtn" id="joinMake" type="button">Make an account</button>
         <button class="mbtn" id="joinSign" type="button">Sign in</button>
       </div>
-      <p class="fine">Accounts are free, need no email and are saved on this device.</p>
+      <p class="fine">Accounts are free and need no email. On the Claude link they stay saved even when the game updates.</p>
     </div>
     <form class="who-form" id="userForm" hidden novalidate>
       <b id="userFormTitle">Make an account</b>
@@ -762,7 +762,43 @@ function loadUsers(){
     }
   }catch(e){}
 }
-function saveUsers(){ try{ localStorage.setItem(USERS_KEY,JSON.stringify(users)); }catch(e){} }
+function saveUsers(){ try{ localStorage.setItem(USERS_KEY,JSON.stringify(users)); }catch(e){} cloudPushUsers(); }
+/* ---- cloud saves (on the Claude link): accounts and games are also kept in the artifact's own
+   storage, so a new version of the game still knows your logins and your money ---- */
+const cloud={db:null,uid:null,ready:false,timer:0,pk:null};
+const cloudKey=k=>('save-'+String(k).replace(/[^A-Za-z0-9_\-.~@+]/g,'_')).slice(0,180);
+function cloudCol(){ return cloud.db.collection('data/users/'+cloud.uid); }
+function cloudPushUsers(){ if(!cloud.ready) return; try{ cloudCol().doc('accounts').set({list:users.list,current:users.current||null,last:users.last||null,t:Date.now()}).catch(()=>{}); }catch(_){} }
+function cloudWrite(k){ try{ cloudCol().doc(cloudKey(k)).set({state:JSON.parse(JSON.stringify(state)),t:Date.now()}).catch(()=>{}); }catch(_){} }
+function cloudPushSave(){ if(!cloud.ready||partySoloLock||!state) return; const k=saveKey(); if(cloud.pk&&cloud.pk!==k) cloudFlush(); cloud.pk=k; clearTimeout(cloud.timer); cloud.timer=setTimeout(()=>{ if(cloud.pk===saveKey()) cloudWrite(cloud.pk); cloud.pk=null; },2500); }
+function cloudFlush(){ if(!cloud.ready||!cloud.pk) return; clearTimeout(cloud.timer); if(!partySoloLock&&cloud.pk===saveKey()) cloudWrite(cloud.pk); cloud.pk=null; }
+async function cloudInit(){
+  try{
+    if(!window.claude||!window.claude.use) return;
+    const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    if(!db||!user) return; const uid=await user.id(); if(!uid) return;
+    cloud.db=db; cloud.uid=uid;
+    const snapU=await cloudCol().doc('accounts').get(); let wasCur=users.current, changed=false;
+    if(snapU.exists){ const d=snapU.data()||{}, list=d.list&&typeof d.list==='object'?d.list:{};
+      for(const [k,u] of Object.entries(list)) if(u&&typeof u.name==='string'&&typeof u.salt==='string'&&typeof u.hash==='string'&&!users.list[k]){ users.list[k]={name:u.name,salt:u.salt,hash:u.hash}; changed=true; }
+      if(!users.current&&typeof d.current==='string'&&users.list[d.current]){ users.current=d.current; changed=true; }
+      if(!users.last&&typeof d.last==='string'&&users.list[d.last]){ users.last=d.last; changed=true; } }
+    if(changed){ try{ localStorage.setItem(USERS_KEY,JSON.stringify(users)); }catch(_){} }
+    let reload=users.current!==wasCur;
+    const keys=[STORE].concat(Object.keys(users.list).map(id=>STORE+':u:'+id));
+    for(const k of keys){
+      let snap; try{ snap=await cloudCol().doc(cloudKey(k)).get(); }catch(_){ continue; } if(!snap.exists) continue;
+      const cd=snap.data()||{}, cs=cd.state; if(!cs||typeof cs!=='object') continue;
+      let local=null; try{ local=JSON.parse(localStorage.getItem(k)||'null'); }catch(_){}
+      const lt=(local&&local.savedAt)||0, ct=cs.savedAt||cd.t||0;
+      if(!local||ct>lt){ try{ localStorage.setItem(k,JSON.stringify(cs)); }catch(_){} if(k===saveKey()) reload=true; }
+    }
+    cloud.ready=true;
+    if(reload&&!party.code&&!cut){ applyState(loadState(readSave())); const nm=playerName(); toast(nm?'Welcome back, '+nm+'! Your saved game is back.':'Your saved game is back!','win'); }
+    else renderWho();
+    cloudPushUsers(); cloudPushSave();
+  }catch(e){}
+}
 function saveKey(){ return users.current?STORE+':u:'+users.current:STORE; }
 let partySoloLock=false;
 function takeSoloBackup(){ try{ const k=saveKey()+':solo', raw=localStorage.getItem(k); if(!raw) return null; localStorage.removeItem(k); return JSON.parse(raw); }catch(_){ return null; } }
@@ -780,7 +816,7 @@ function readSave(){
   }catch(e){ return null; }
 }
 function playerName(){ const u=users.current&&users.list[users.current]; return u?u.name:null; }
-function save(){ try{ localStorage.setItem(saveKey(),JSON.stringify(state)); }catch(e){} }
+function save(){ if(state) state.savedAt=Date.now(); try{ localStorage.setItem(saveKey(),JSON.stringify(state)); }catch(e){} cloudPushSave(); }
 const randHex=n=>{ const a=new Uint8Array(n); crypto.getRandomValues(a); return Array.from(a,b=>b.toString(16).padStart(2,'0')).join(''); };
 async function hashPw(pw,salt,scheme){
   if(scheme!=='f1:'&&window.crypto&&crypto.subtle){
@@ -5855,6 +5891,7 @@ function renderSwatches(){
     b.addEventListener('click',()=>{ state.skin=c; save(); setHandColour(); renderSwatches(); }); box.appendChild(b); });
 }
 function applyState(next){
+  cloudFlush();
   if(party.code){ const sv=party.solo, k=party.soloKey; party.solo=null; party.soloKey=null; leaveParty(true);
     if(sv&&k){ try{ localStorage.removeItem(k+':solo'); }catch(_){} if(k===saveKey()) next=mergeSolo(sv,next); else{ try{ localStorage.setItem(k,JSON.stringify(mergeSolo(sv,null))); }catch(_){} } } }
   unmountTable();
@@ -5951,6 +5988,7 @@ async function boot(data){
   $('enterBtn').disabled=false; $('enterBtn').textContent=pendingParty?(pendingParty.host?'Enter and start party '+pendingParty.code:'Enter and join party '+pendingParty.code):'Enter the casino';
   requestAnimationFrame(loop);
   if(isBroke()) toast("You're broke! Walk out the EXIT door to start over with "+money(START)+".",'bad');
+  cloudInit();
 }
 const hot=window.claude&&window.claude.hot;
 hot&&hot.ready?hot.ready(boot):boot(hot&&hot.data?hot.data:{});
