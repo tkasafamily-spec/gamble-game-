@@ -954,6 +954,7 @@ const sfx={
   }
 };
 function startAmbient(){
+  return; // the old crowd sound was filtered noise and sounded like a constant hiss, so it is switched off
   if(!ac||!state.sound||ambient) return;
   try{
     const src=ac.createBufferSource(); src.buffer=getNoise(); src.loop=true;
