@@ -366,6 +366,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 .dayhud .day-timer{font:900 44px/1 var(--font-ui);color:#fff}
 .dayhud.hurry .day-timer{color:#ff5a4a}
 .quota{font:900 24px/1 var(--font-ui);text-shadow:0 2px 0 rgba(0,0,0,.7)}
+.betbadge{display:inline-flex;flex-direction:column;align-self:flex-start;margin-top:8px;padding:6px 12px;border-radius:10px;background:rgba(10,8,14,.82);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18);transform:rotate(-3deg)}.betbadge small{font:800 11px/1 var(--font-ui);letter-spacing:.12em;color:#b8b4c6}.betbadge b{font:900 22px/1.1 var(--font-ui);color:#fff}.betbadge[hidden]{display:none}
 .quota.no{color:#ff5a4a} .quota.ok{color:var(--money)}
 .bigmsg{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;pointer-events:none;text-align:center;padding:16px}
 .bigmsg b{font:400 clamp(46px,10vw,120px)/1 "Luckiest Guy","Limelight",Georgia,serif;color:#fff;-webkit-text-stroke:7px #000;paint-order:stroke fill;text-shadow:0 8px 0 rgba(0,0,0,.5);animation:bump .6s ease}
@@ -466,6 +467,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
   <span class="cash-label">Cash</span>
   <span class="cash-val" data-cash>$2,500</span>
   <span class="quota" id="quotaLine" hidden></span>
+  <span class="betbadge" id="betHud" hidden><small>TOTAL BET</small><b id="betHudVal">$0</b></span>
   <span class="perks" id="perks" hidden></span>
   <span class="tix" id="tix" hidden>0 tickets</span>
 </div>
@@ -2940,10 +2942,7 @@ function drawRouletteFelt(g,PW,PH){
   g.fillStyle='#174a33'; g.fillRect(0,0,PW,PH);
   const gr=g.createRadialGradient(PW*0.35,PH*0.5,20,PW*0.35,PH*0.5,PW*0.7); gr.addColorStop(0,'rgba(255,255,255,.07)'); gr.addColorStop(1,'rgba(0,0,0,.28)');
   g.fillStyle=gr; g.fillRect(0,0,PW,PH);
-  g.strokeStyle='rgba(241,230,201,.22)'; g.lineWidth=3; rrect(g,8,56,PW*0.69,PH-96,22); g.stroke();
-  g.fillStyle='rgba(241,230,201,.6)'; g.textAlign='center'; g.textBaseline='middle';
-  g.font='24px '+DISPLAY; g.fillText('Bet on a number, colour or range',360,30);
-  g.font='22px '+DISPLAY; g.fillText('Casino With Friends',330,PH-20);
+  g.strokeStyle='rgba(150,230,170,.55)'; g.lineWidth=5; rrect(g,10,46,690,308,20); g.stroke();
 }
 function drawRouletteText(g,PW,PH){
   const keys=['n0'].concat(Array.from({length:36},(_,i)=>'n'+(i+1)),['c1','c2','c3','d1','d2','d3','low','even','odd','high']);
@@ -3224,7 +3223,7 @@ function makeMaterials(){
     rimLine:smooth({color:0xdcdce2,specular:0x444444,shininess:20}),
     numBlock:new THREE.MeshPhongMaterial({color:0xffffff,flatShading:true,shininess:8,specular:0x111111}),
     turret:smooth({color:0xff8a2a,specular:0x664422,shininess:28,emissive:0x2a0e00}),
-    cellMat:smooth({color:0xffffff,shininess:16,specular:0x222222}),
+    cellMat:smooth({color:0xffffff,shininess:10,specular:0x141414}),
     rlText:new THREE.MeshBasicMaterial({map:T.rlText,transparent:true,depthWrite:false,toneMapped:false}),
     rlNums:new THREE.MeshBasicMaterial({map:T.rlNums,transparent:true,depthWrite:false,toneMapped:false,side:THREE.DoubleSide}),
     goldSmooth:smooth({color:0xb8862e,specular:0x4a3a1c,shininess:30,emissive:0x140c00}),
@@ -3345,33 +3344,37 @@ function buildRouletteWheel(g,o){
   const ballM=mesh(geo('ball',()=>new THREE.SphereGeometry(0.016,16,12)),M.ball,0.41,rlBallY(0.41),0,wg);
   return {spinG,ballM};
 }
-const RL_EDGE=(()=>{ const m=new THREE.MeshPhongMaterial({color:0x0e0d11,specular:0x1c1c22,shininess:30}); m.userData.keepSmooth=true; m.userData.keepShine=true; return m; })();
+const RL_EDGE=(()=>{ const m=new THREE.MeshPhongMaterial({color:0x08070a,specular:0x18181e,shininess:24}); m.userData.keepSmooth=true; m.userData.keepShine=true; return m; })();
 function rouletteTable(px,pz,rot){
   const g=grp(px,pz,rot);
-  const LS=0.8, LZ=0.72, WZ=-1.98, WS=1.95, OR=1.24;
-  // layout table
-  box(1.32,0.8,2.92,M.darkWood,0,0.4,LZ,g);
-  mesh(geo('rlTop2',()=>roundBox(1.52,0.08,3.1,0.035,2)),RL_EDGE,0,0.82,LZ,g);
-  const lay=new THREE.Group(); lay.position.set(0,0.876-0.862*LS,LZ); lay.scale.setScalar(LS); g.add(lay);
-  const felt=new THREE.Mesh(geo('rlFelt',()=>new THREE.PlaneGeometry(1.5,3.4)),M.rlFelt); felt.rotation.x=-Math.PI/2; felt.position.set(0,0.862,0); lay.add(felt);
-  // octagon wheel housing, flush with the table
-  const oct=new THREE.Mesh(geo('rlOct',()=>new THREE.CylinderGeometry(OR,OR*1.02,0.895,8,1,true)),RL_EDGE); oct.position.set(0,0.4475,WZ); oct.rotation.y=Math.PI/8; g.add(oct);
-  const ring=new THREE.Mesh(geo('rlOctTop',()=>{ const sh=new THREE.Shape(); for(let k=0;k<8;k++){ const a=k*TAU/8+Math.PI/8; const x=Math.cos(a)*OR, y=Math.sin(a)*OR; k?sh.lineTo(x,y):sh.moveTo(x,y); } sh.closePath(); const hole=new THREE.Path(); hole.absarc(0,0,0.549*WS+0.006,0,TAU,true); sh.holes.push(hole); return new THREE.ShapeGeometry(sh,48); }),RL_EDGE);
-  ring.rotation.x=-Math.PI/2; ring.position.set(0,0.895,WZ); g.add(ring);
-  const inner=new THREE.Mesh(geo('rlOctIn',()=>new THREE.CylinderGeometry(0.549*WS+0.006,0.549*WS+0.006,0.3,48,1,true)),new THREE.MeshPhongMaterial({color:0x0c0b0f,side:THREE.BackSide})); inner.position.set(0,0.745,WZ); g.add(inner);
-  const lip=new THREE.Mesh(geo('rlLip',()=>new THREE.TorusGeometry(0.549*WS+0.01,0.013,8,72)),smooth({color:0xdcdce2,specular:0x666666,shininess:40})); lip.rotation.x=Math.PI/2; lip.position.set(0,0.9,WZ); g.add(lip);
+  const LZ=1.15, WS=1.8, OR=1.16, AP=OR*Math.cos(Math.PI/8), WZ=-0.68-AP, BR=0.549*WS+0.006;
+  const base=lamb(0x120f14);
+  // layout table: slim black top on a tucked-in base
+  const LS=1.15, LX=0.16, LZG=0.25, sub=(key)=>geo(key,()=>{ const a=-0.62,b=0.44,c=-0.64,d=1.69; const gm=new THREE.PlaneGeometry(b-a,d-c); gm.translate((a+b)/2,-(c+d)/2,0); const p=gm.attributes.position, uv=gm.attributes.uv; for(let i=0;i<p.count;i++) uv.setXY(i,(p.getX(i)+0.75)/1.5,(p.getY(i)+1.7)/3.4); uv.needsUpdate=true; return gm; });
+  box(1.1,0.76,2.7,base,0.06,0.38,0.855,g);
+  mesh(geo('rlTop4',()=>roundBox(1.5,0.1,2.98,0.04,2)),RL_EDGE,0.06,0.81,0.855,g);
+  const lay=new THREE.Group(); lay.position.set(LX,0.872-0.862*LS,LZG); lay.scale.setScalar(LS); g.add(lay);
+  const felt=new THREE.Mesh(sub('rlFeltSub'),M.rlFelt); felt.rotation.x=-Math.PI/2; felt.position.set(0,0.862,0); lay.add(felt);
+  // wheel: slim black octagon rim, base tucked under
+  const lid=new THREE.Mesh(geo('rlOctLid',()=>new THREE.CylinderGeometry(OR,OR,0.16,8,1,true)),RL_EDGE); lid.position.set(0,0.82,WZ); lid.rotation.y=Math.PI/8; g.add(lid);
+  const ob=new THREE.Mesh(geo('rlOctBase',()=>new THREE.CylinderGeometry(0.78,0.9,0.74,8)),base); ob.position.set(0,0.37,WZ); ob.rotation.y=Math.PI/8; g.add(ob);
+  const ring=new THREE.Mesh(geo('rlOctTop2',()=>{ const sh=new THREE.Shape(); for(let k=0;k<8;k++){ const a=k*TAU/8+Math.PI/8; const x=Math.cos(a)*OR, y=Math.sin(a)*OR; k?sh.lineTo(x,y):sh.moveTo(x,y); } sh.closePath(); const hole=new THREE.Path(); hole.absarc(0,0,BR,0,TAU,true); sh.holes.push(hole); return new THREE.ShapeGeometry(sh,48); }),RL_EDGE);
+  ring.rotation.x=-Math.PI/2; ring.position.set(0,0.9,WZ); g.add(ring);
+  const bev=new THREE.Mesh(geo('rlOctBev',()=>new THREE.TorusGeometry(OR*0.985,0.018,4,8)),lamb(0x34303a)); bev.rotation.x=Math.PI/2; bev.rotation.z=Math.PI/8; bev.position.set(0,0.9,WZ); g.add(bev);
+  const inner=new THREE.Mesh(geo('rlOctIn2',()=>new THREE.CylinderGeometry(BR,BR,0.34,48,1,true)),new THREE.MeshPhongMaterial({color:0x0c0b0f,side:THREE.BackSide})); inner.position.set(0,0.73,WZ); g.add(inner);
+  const lip=new THREE.Mesh(geo('rlLip2',()=>new THREE.TorusGeometry(BR+0.004,0.012,8,72)),smooth({color:0xe2e2e8,specular:0x666666,shininess:40})); lip.rotation.x=Math.PI/2; lip.position.set(0,0.902,WZ); g.add(lip);
   const {spinG,ballM}=buildRouletteWheel(g,{x:0,y:0.9-0.099*WS,z:WZ,tilt:0,yaw:0,scale:WS,flat:true});
-  // puffy bet cells
+  // tall puffy bet cushions
   const cellKeys=['n0'].concat(Array.from({length:36},(_,i)=>'n'+(i+1)),['c1','c2','c3','d1','d2','d3','low','even','red','black','odd','high']);
   const cells=new THREE.InstancedMesh(cushionGeo(1,1,1),M.cellMat,cellKeys.length), cd=new THREE.Object3D();
   cellKeys.forEach((k,i)=>{
-    const r=rlCellRect(k); cd.position.set(r.lx,0.881,r.lz); cd.scale.set(r.sx*0.9,0.036,r.sz*0.9); cd.updateMatrix(); cells.setMatrixAt(i,cd.matrix);
-    const col=k==='n0'?0x7cc142:k.charAt(0)==='n'?(RL_REDS.has(+k.slice(1))?0xd0303f:0x2b2734):k==='red'?0xd0303f:k==='black'?0x2b2734:k.charAt(0)==='d'?0xd9a3aa:0xc4808a;
+    const r=rlCellRect(k); cd.position.set(r.lx,0.889,r.lz); cd.scale.set(r.sx*0.9,0.052,r.sz*0.9); cd.updateMatrix(); cells.setMatrixAt(i,cd.matrix);
+    const col=k==='n0'?0x86c832:k.charAt(0)==='n'?(RL_REDS.has(+k.slice(1))?0xb81d33:0x1c1a24):k==='red'?0xb81d33:k==='black'?0x1c1a24:k.charAt(0)==='d'?0xd8a6ae:0xb4707c;
     if(cells.setColorAt) cells.setColorAt(i,new THREE.Color(col));
   });
   if(cells.instanceColor) cells.instanceColor.needsUpdate=true;
   lay.add(cells);
-  const ftxt=new THREE.Mesh(geo('rlFelt',()=>new THREE.PlaneGeometry(1.5,3.4)),M.rlText); ftxt.rotation.x=-Math.PI/2; ftxt.position.set(0,0.8995,0); lay.add(ftxt);
+  const ftxt=new THREE.Mesh(sub('rlFeltSub'),M.rlText); ftxt.rotation.x=-Math.PI/2; ftxt.position.set(0,0.919,0); lay.add(ftxt);
   const ref={anim:null,rest:null,ba:Math.random()*TAU};
   tickers.push((t,dt)=>{
     const a=ref.anim;
@@ -3393,29 +3396,29 @@ function rouletteTable(px,pz,rot){
   ref.g=lay; ref.felt=ftxt; ref.chips={};
   felt.userData=ftxt.userData;
   felt.userData.onClick=h=>{ const k=h.uv?rlKeyAt(h.uv.y*1020,h.uv.x*450):null; if(k){ clickDom('.cell[data-key="'+k+'"]'); } };
-  const playGo=()=>{ if(!clickDom('[data-a="spin"]')){ const m=$('tableBody').querySelector('.msg'); if(m&&!(seatApi&&seatApi.spinning&&seatApi.spinning())){ m.textContent='Put some chips on the table first.'; toast('Put some chips on the table first.'); } } };
+  const playGo=()=>{ if(!clickDom('[data-a="spin"]')){ const m=$('tableBody').querySelector('.msg'); if(m&&!(seatApi&&seatApi.spinning&&seatApi.spinning())){ m.textContent='Put some chips on the table first.'; toast('Tap a number on the table to bet first.'); } } };
   felt.userData.label=h=>{ const k=h.uv?rlKeyAt(h.uv.y*1020,h.uv.x*450):null; return k?domLabel('.cell[data-key="'+k+'"]','Bet on '):null; };
-  felt.userData.hover=h=>{ const k=h.uv?rlKeyAt(h.uv.y*1020,h.uv.x*450):null; showHoverRect(k?rlCellRect(k):null,0.9005); };
-  ref.stackAt=k=>{ const r=rlCellRect(k); return r?[r.lx,0.898,r.lz]:null; };
-  // big GWYF cushions on the player's side
-  box(0.44,0.06,2.92,RL_EDGE,0.94,0.83,LZ,g);
-  const play=cushion(g,{label:'PLAY',color:0x7cc142,x:0.94,y:0.86,z:-0.25,w:0.4,d:0.58,h:0.14,face:'z',fn:playGo,hover:'Spin the wheel'}).b;
+  felt.userData.hover=h=>{ const k=h.uv?rlKeyAt(h.uv.y*1020,h.uv.x*450):null; showHoverRect(k?rlCellRect(k):null,0.921); };
+  ref.stackAt=k=>{ const r=rlCellRect(k); return r?[r.lx,0.917,r.lz]:null; };
+  // buttons on a slim ledge on your side
+  box(0.36,0.08,2.5,RL_EDGE,0.97,0.82,0.65,g);
+  const play=cushion(g,{label:'PLAY',color:0x86c832,x:0.97,y:0.86,z:-0.3,w:0.32,d:0.5,h:0.09,face:'z',fn:playGo,hover:'Spin the wheel'}).b;
   ref.play=play; ref.playLabel=play;
-  ref.targets=[ftxt,play].concat(kiosk(g,1.55,0,0.85,2.75,true),
-    btn3(g,{label:'REBET',color:0xd9a51c,css:'#d9a51c',x:0.94,y:0.86,z:0.35,w:0.4,d:0.4,face:'z',fn:()=>clickDom('[data-a="rebet"]'),hover:'Place your last bets again'}),
-    btn3(g,{label:'UNDO',color:0x6f7fa8,css:'#6f7fa8',x:0.94,y:0.86,z:0.86,w:0.4,d:0.36,face:'z',fn:()=>clickDom('[data-a="undo"]'),hover:'Undo your last chip'}),
-    btn3(g,{label:'CLEAR',color:0xd23c3c,css:'#d23c3c',x:0.94,y:0.86,z:1.33,w:0.4,d:0.36,face:'z',fn:()=>clickDom('[data-a="clear"]'),hover:'Take all your chips back'}));
-  // "Bet on a number, color or range." board
+  ref.targets=[ftxt,play].concat(kiosk(g,1.5,0,1.3,3.05,true,0.8),
+    btn3(g,{label:'REBET',color:0xd23c4c,css:'#d23c4c',x:0.97,y:0.86,z:0.22,w:0.32,d:0.34,h:0.075,face:'z',fn:()=>clickDom('[data-a="rebet"]'),hover:'Place your last bets again'}),
+    btn3(g,{label:'UNDO',color:0x6f7fa8,css:'#6f7fa8',x:0.97,y:0.86,z:0.62,w:0.32,d:0.3,h:0.07,face:'z',fn:()=>clickDom('[data-a="undo"]'),hover:'Undo your last chip'}),
+    btn3(g,{label:'CLEAR',color:0x8a8494,css:'#8a8494',x:0.97,y:0.86,z:0.98,w:0.32,d:0.3,h:0.07,face:'z',fn:()=>clickDom('[data-a="clear"]'),hover:'Take all your chips back'}));
+  // sign behind the layout
   const signT=canvasTex(1024,220,(c,w,h)=>{ c.fillStyle='#141216'; rrect(c,4,4,w-8,h-8,20); c.fill(); c.strokeStyle='#3a3640'; c.lineWidth=8; rrect(c,14,14,w-28,h-28,14); c.stroke();
     c.fillStyle='#ece6d8'; c.font='italic 600 70px Georgia, "Times New Roman", serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('Bet on a number, color or range.',w/2,h/2+4); },{text:true});
-  const sg=new THREE.Group(); sg.position.set(-1.0,0,0.1); sg.rotation.y=Math.PI/2; g.add(sg);
-  mesh(geo('rlSign',()=>new THREE.PlaneGeometry(1.7,0.365)),new THREE.MeshBasicMaterial({map:signT,toneMapped:false}),0,1.52,0.031,sg);
-  box(1.76,0.42,0.05,lamb(0x0c0b0e),0,1.52,0,sg); [-0.7,0.7].forEach(x=>cyl(0.025,0.025,1.32,8,M.black,x,0.66,-0.03,sg));
-  [[-0.66,0.05,8,0xbb2532],[-0.66,0.3,5,0x1d1c22],[-0.66,0.55,12,0xe9e4d6],[-0.66,0.8,6,0x5d2b8a]].forEach(([x,z,n,c])=>chipStack(x,z,n,c,g));
-  const dealer=person({shirt:0xf2efe6,vest:0x1b1a20,pants:0x15151a,skin:pickSkin(),hair:pickHair(),h:1.76,bow:true}); dealer.position.set(-1.35,0,-0.7); dealer.rotation.y=Math.PI/2; g.add(dealer); idlers.push(dealer);
-  neonSign('ROULETTE',{font:'800 74px '+UI,color:'#ffd27a',glow:'#ff6a3a',board:true,w:512,h:128,spacing:'6px'},-0.2,3.4,WZ+0.9,Math.PI/2,2.4,0.6,g);
-  boxCollider(px,pz,rot,-1.3,1.18,WZ-1.28,LZ+1.58);
-  addStation('roulette','Play Roulette',px,pz,rot,1.85,-0.7,0,-0.7,ref);
+  const sg=new THREE.Group(); sg.position.set(-1.0,0,0.85); sg.rotation.y=Math.PI/2; g.add(sg);
+  mesh(geo('rlSign',()=>new THREE.PlaneGeometry(1.7,0.365)),new THREE.MeshBasicMaterial({map:signT,toneMapped:false}),0,1.62,0.031,sg);
+  box(1.76,0.42,0.05,lamb(0x0c0b0e),0,1.62,0,sg); [-0.7,0.7].forEach(x=>cyl(0.025,0.025,1.42,8,M.black,x,0.71,-0.03,sg));
+  [[-0.63,-0.45,8,0xbb2532],[-0.63,-0.25,5,0x1d1c22],[-0.63,-0.05,12,0xe9e4d6]].forEach(([x,z,n,c])=>chipStack(x,z,n,c,g));
+  const dealer=person({shirt:0xf2efe6,vest:0x1b1a20,pants:0x15151a,skin:pickSkin(),hair:pickHair(),h:1.76,bow:true}); dealer.position.set(-1.55,0,WZ+0.2); dealer.rotation.y=Math.PI/2; g.add(dealer); idlers.push(dealer);
+  neonSign('ROULETTE',{font:'800 74px '+UI,color:'#ffd27a',glow:'#ff6a3a',board:true,w:512,h:128,spacing:'6px'},-0.3,3.4,LZ-0.3,Math.PI/2,2.4,0.6,g);
+  boxCollider(px,pz,rot,-1.2,1.18,WZ-OR-0.05,2.4);
+  addStation('roulette','Play Roulette',px,pz,rot,1.62,-0.55,0,-0.55,ref);
 }
 const BJ_RIM=(()=>{ const m=new THREE.MeshPhongMaterial({color:0x4e0c16,specular:0x331a1e,shininess:30}); m.userData.keepSmooth=true; return m; })();
 function bjPlaque(g){
@@ -3975,8 +3978,8 @@ function drawKpDisplay(g,w,h){
   g.save(); g.textAlign='center'; g.fillStyle=all||over?'#ff5a5a':'#5dff98'; g.shadowColor=g.fillStyle; g.shadowBlur=12; g.fillText(txt,w/2,h/2+20); g.restore();
 }
 const KP_KEYS=[['1','2','3'],['4','5','6'],['7','8','9'],['C','0','000']];
-function kiosk(parent,x,y,z,rotY,stand){
-  const k={hover:null}, kg=new THREE.Group(); kg.position.set(x,y,z); kg.rotation.y=rotY; parent.add(kg);
+function kiosk(parent,x,y,z,rotY,stand,sc){
+  const k={hover:null}, kg=new THREE.Group(); kg.position.set(x,y,z); kg.rotation.y=rotY; if(sc) kg.scale.setScalar(sc); parent.add(kg);
   const postH=stand?0.8:0.06;
   cyl(0.032,0.038,postH,10,M.black,0,postH/2,0,kg);
   if(stand){ cyl(0.2,0.23,0.04,20,M.black,0,0.02,0,kg); }
@@ -4037,7 +4040,7 @@ function unmountTable(){
   if(tableMount.api.destroy) tableMount.api.destroy();
   clickTargets=[]; hoverHit=null; if(hoverBtn){ hoverBtn.scale.setScalar(1); hoverBtn=null; }
   { if(st.ref.setDisplay) st.ref.setDisplay(null); if(st.ref.chips) syncStacks(st.ref,{}); if(rlHover&&rlHover.parent) rlHover.parent.remove(rlHover); st.ref.hold=false; if(st.ref.setTotals) st.ref.setTotals('',''); }
-  tableMount=null; activeStation=null; seatApi=null; seat3d=null; $('tableBody').textContent=''; $('tableBar').hidden=true; lastNearKey='~';
+  tableMount=null; activeStation=null; seatApi=null; seat3d=null; $('tableBody').textContent=''; $('betHud').hidden=true; $('tableBar').hidden=true; lastNearKey='~';
 }
 function updateMount(){
   let best=null, bd=2.4;
@@ -4082,7 +4085,7 @@ function seatTick(){
   if(m&&m.textContent!==lastSeatMsg){ lastSeatMsg=m.textContent; $('tableMsg').textContent=lastSeatMsg;
     if(/\$/.test(lastSeatMsg)) toast(lastSeatMsg,/you win|you won|cashed out/i.test(lastSeatMsg)?'win':/takes|lose|lost|bust|crash|house/i.test(lastSeatMsg)?'bad':''); }
   const st=activeStation; if(!st||!seatApi) return;
-  if(seatApi.bets&&st.type!=='slots'){ const b=seatApi.bets(), sj=JSON.stringify(b); if(sj!==lastBetsStr){ lastBetsStr=sj; syncStacks(st.ref,b); } }
+  if(seatApi.bets&&st.type!=='slots'){ const b=seatApi.bets(), sj=JSON.stringify(b); if(sj!==lastBetsStr){ lastBetsStr=sj; syncStacks(st.ref,b); const tot=sum(b); $('betHud').hidden=!tot; $('betHudVal').textContent=money(tot); } }
   if(st.type==='blackjack'){
     const b=seatApi.bet(); if(b!==st.ref.lastBet){ st.ref.lastBet=b; syncStacks(st.ref,b?{bet:b}:{}); }
     const dT=root.querySelector('[data-t="dealer"]'), pT=root.querySelector('[data-t="player"]');
