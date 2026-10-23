@@ -413,7 +413,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 #startScreen.intro .screen-card{opacity:0;transform:translateY(70px) scale(.55);pointer-events:none}
 #startScreen.intro{cursor:pointer}
 .hold-ring{position:fixed;z-index:9;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:conic-gradient(var(--money) var(--p,0%),rgba(255,255,255,.18) 0);-webkit-mask:radial-gradient(circle,transparent 16px,#000 17px);mask:radial-gradient(circle,transparent 16px,#000 17px);pointer-events:none}
-.tablebar{position:fixed;z-index:10;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 18px;border-radius:14px;background:var(--hud);box-shadow:inset 0 0 0 1px var(--line);pointer-events:none;width:max-content;max-width:calc(100% - 32px);text-align:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.tablebar{position:fixed;z-index:10;left:50%;top:calc(112px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 18px;border-radius:14px;background:var(--hud);box-shadow:inset 0 0 0 1px var(--line);pointer-events:none;width:max-content;max-width:calc(100% - 32px);text-align:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .tablebar b{font:400 18px/1 var(--font-display);color:var(--brass-hi)}
 .tablebar span{font-size:14px;font-weight:600}
 .tablebar .tb-chip{font-size:12px;color:var(--money);font-weight:700}
@@ -430,7 +430,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 .dayhud.hurry .day-timer{color:var(--bad);animation:bump 1s ease infinite}
 .day-quota{font-size:13px;color:var(--ink-dim)}
 .day-quota b{color:var(--money)}
-@media (max-width:760px){.dayhud{top:auto;bottom:calc(170px + env(safe-area-inset-bottom,0px))}.day-quota{display:none}.chal{display:none}}
+@media (max-width:760px){.tablebar{top:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px))}.dayhud{top:auto;bottom:calc(170px + env(safe-area-inset-bottom,0px))}.day-quota{display:none}.chal{display:none}}
 .seatbar{position:fixed;z-index:20;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(880px,calc(100% - 24px));display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:16px;background:var(--hud);box-shadow:inset 0 0 0 1px var(--line),0 12px 30px var(--shadow);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .seat-msg{margin:0;font-weight:600;text-align:center;text-wrap:balance}
 .seat-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 14px}
@@ -901,7 +901,7 @@ const RL_ORDER=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1
 const RL_IDX=new Map(RL_ORDER.map((n,i)=>[n,i]));
 const RL_REDS=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const rlColor=n=>n===0?'green':(RL_REDS.has(n)?'red':'black');
-const rlFill=n=>n===0?COL.zero:(RL_REDS.has(n)?COL.red:COL.black);
+const rlFill=n=>n===0?'#3fae49':(RL_REDS.has(n)?'#c8283a':'#262338');
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 function rlCovers(key,n){
   if(key.charAt(0)==='n') return Number(key.slice(1))===n;
@@ -944,10 +944,10 @@ function drawRouletteHead(g,S,withTrack){
   for(let i=0;i<37;i++){
     const a=i*SEG-SEG/2-Math.PI/2;
     g.strokeStyle='rgba(241,230,201,.45)'; g.lineWidth=Math.max(1,R*0.005); radialLine(g,c,a,R*RP,R*RN);
-    g.strokeStyle=COL.brassDeep; g.lineWidth=Math.max(2,R*0.016); radialLine(g,c,a,R*RC,R*(RP+0.007));
-    g.strokeStyle=COL.brassHi; g.lineWidth=Math.max(1,R*0.007); radialLine(g,c,a,R*RC,R*(RP+0.007));
+    g.strokeStyle='#121016'; g.lineWidth=Math.max(2,R*0.016); radialLine(g,c,a,R*RC,R*(RP+0.007));
+    g.strokeStyle='#9a97a4'; g.lineWidth=Math.max(1,R*0.006); radialLine(g,c,a,R*RC,R*(RP+0.007));
   }
-  g.lineWidth=Math.max(1,R*0.01); g.strokeStyle=COL.brass;
+  g.lineWidth=Math.max(1,R*0.01); g.strokeStyle='#121016';
   [RN,RP,RC].forEach(f=>{ g.beginPath(); g.arc(c,c,R*f,0,TAU); g.stroke(); });
   g.textAlign='center'; g.textBaseline='middle';
   g.font='800 '+Math.round(R*0.092)+'px '+UI;
@@ -979,7 +979,7 @@ const TPL_ROULETTE=`
       <span class="lucky-pill"><span class="ln"></span><span><strong>Lucky number.</strong> A straight bet on it pays 70 to 1.</span></span>
       <span class="mini-stat">On the table <b data-ontable>$0</b></span>
     </div>
-    <p class="msg" aria-live="polite">Type your bet on the screen, tap the table to bet, then spin.</p>
+    <p class="msg" aria-live="polite">Type your bet on the keypad, tap the table to bet, then spin.</p>
     <div class="board-scroll"><div class="board"></div></div>
     <p class="fine">A single number pays 35 to 1, or 70 to 1 on the lucky number. Dozens and columns pay 2 to 1. Red, black, odd, even, 1–18 and 19–36 pay 1 to 1. Green zero beats every outside bet.</p>
   </div>
@@ -1236,7 +1236,7 @@ const TPL_BJ=`
     </div>
     <button class="bet-spot" type="button" aria-label="Add the selected chip to your bet"><span class="eyebrow">Bet</span><b data-bet>$0</b><span class="spot-hint">Tap to add a chip</span></button>
   </div>
-  <p class="msg" aria-live="polite">Type your bet on the screen, tap the bet circle, then deal.</p>
+  <p class="msg" aria-live="polite">Type your bet on the keypad, tap the bet circle, then deal.</p>
   <div class="rack">
     <div data-chips></div>
     <div class="actions">
@@ -1815,7 +1815,7 @@ const PL_MULT=[24,4,1.2,0.5,0.2,0.5,1.2,4,24];
 const HL_RN=['A','2','3','4','5','6','7','8','9','10','J','Q','K'], HL_SU=['♠','♥','♦','♣'];
 function buildPlinko(root,hooks){
   const H=(hooks&&hooks.table)||{};
-  root.innerHTML='<div class="dc"><p class="fine">Slots pay '+PL_MULT.map(m=>m+'×').join(' · ')+'</p><p class="msg" aria-live="polite">Type your bet on the screen and press Drop. You can drop lots of balls at once.</p><div class="rack"><div data-chips></div><div class="actions"><button class="spin" type="button" data-a="drop">Drop</button></div></div></div>';
+  root.innerHTML='<div class="dc"><p class="fine">Slots pay '+PL_MULT.map(m=>m+'×').join(' · ')+'</p><p class="msg" aria-live="polite">Type your bet on the keypad and press Drop. You can drop lots of balls at once.</p><div class="rack"><div data-chips></div><div class="actions"><button class="spin" type="button" data-a="drop">Drop</button></div></div></div>';
   const say=t=>{ root.querySelector('.msg').textContent=t; };
   chipRack(root.querySelector('[data-chips]'),true);
   let inFlight=0;
@@ -1838,7 +1838,7 @@ function buildPlinko(root,hooks){
 }
 function buildHiLo(root,hooks){
   const H=(hooks&&hooks.table)||{};
-  root.innerHTML='<div class="dc"><div class="hl-card" aria-live="polite">?</div><p class="msg" aria-live="polite">Type your bet on the screen and press Deal. Then guess if the next card is higher or lower.</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="lower">Lower</button><button class="btn" type="button" data-a="higher">Higher</button><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="deal">Deal</button></div></div></div>';
+  root.innerHTML='<div class="dc"><div class="hl-card" aria-live="polite">?</div><p class="msg" aria-live="polite">Type your bet on the keypad and press Deal. Then guess if the next card is higher or lower.</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="lower">Lower</button><button class="btn" type="button" data-a="higher">Higher</button><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="deal">Deal</button></div></div></div>';
   const q=s=>root.querySelector(s), btn=k=>q('[data-a="'+k+'"]'), say=t=>{ q('.msg').textContent=t; };
   chipRack(q('[data-chips]'),true);
   let bet=0,pot=0,card=null,steps=0,wait=false;
@@ -1866,7 +1866,7 @@ function buildHiLo(root,hooks){
 }
 function buildCrash(root,hooks){
   const H=(hooks&&hooks.table)||{};
-  root.innerHTML='<div class="dc"><p class="msg" aria-live="polite">Type your bet on the screen and press Launch. Cash out before the rocket crashes!</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="launch">Launch</button></div></div></div>';
+  root.innerHTML='<div class="dc"><p class="msg" aria-live="polite">Type your bet on the keypad and press Launch. Cash out before the rocket crashes!</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="launch">Launch</button></div></div></div>';
   const q=s=>root.querySelector(s), btn=k=>q('[data-a="'+k+'"]'), say=t=>{ q('.msg').textContent=t; };
   chipRack(q('[data-chips]'),true);
   let bet=0, flying=false, t0=0, crashAt=1, cur=1, iv=null;
@@ -1896,7 +1896,7 @@ function minesMult(k,n){ let m=0.97; for(let i=0;i<k;i++) m*=(25-i)/(25-n-i); re
 function buildMines(root,hooks){
   const H=(hooks&&hooks.table)||{};
   let tiles=''; for(let i=0;i<25;i++) tiles+='<button class="btn" type="button" data-tile="'+i+'" aria-label="Tile '+(i+1)+'">?</button>';
-  root.innerHTML='<div class="dc"><div class="mines-grid">'+tiles+'</div><p class="msg" aria-live="polite">Type your bet on the screen and press Start, then find the gems and dodge the mines.</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="count">Mines: 3</button><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="start">Start</button></div></div></div>';
+  root.innerHTML='<div class="dc"><div class="mines-grid">'+tiles+'</div><p class="msg" aria-live="polite">Type your bet on the keypad and press Start, then find the gems and dodge the mines.</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="count">Mines: 3</button><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="start">Start</button></div></div></div>';
   const q=s=>root.querySelector(s), btn=k=>q('[data-a="'+k+'"]'), say=t=>{ q('.msg').textContent=t; };
   chipRack(q('[data-chips]'),true);
   let bet=0, mines=3, bombs=new Set(), rev=new Array(25).fill(0), picks=0;
@@ -2740,7 +2740,7 @@ function drawNight(g,w,h){
 }
 /* "player view" drawings for long tables: px runs along the table (wheel end on the right), py from the dealer (top) to the player (bottom) */
 function drawRouletteFelt(g,PW,PH){
-  g.fillStyle='#0e5a34'; g.fillRect(0,0,PW,PH);
+  g.fillStyle='#174a33'; g.fillRect(0,0,PW,PH);
   const gr=g.createRadialGradient(PW*0.35,PH*0.5,20,PW*0.35,PH*0.5,PW*0.7); gr.addColorStop(0,'rgba(255,255,255,.07)'); gr.addColorStop(1,'rgba(0,0,0,.28)');
   g.fillStyle=gr; g.fillRect(0,0,PW,PH);
   g.strokeStyle='rgba(241,230,201,.22)'; g.lineWidth=3; rrect(g,8,56,PW*0.69,PH-96,22); g.stroke();
@@ -3021,14 +3021,14 @@ function makeMaterials(){
     night:new THREE.MeshBasicMaterial({map:T.night}),
     rlFelt:new THREE.MeshPhongMaterial({map:T.rlFelt,shininess:3}),
     rlTop:new THREE.MeshPhongMaterial({map:T.rlTop,shininess:10,specular:0x111111,side:THREE.DoubleSide}),
-    wheelWood:smooth({color:0x3a0c12,specular:0x140a0a,shininess:12,side:THREE.DoubleSide}),
-    wheelTrack:smooth({color:0x2a0a0e,specular:0x1c0a10,shininess:14,side:THREE.DoubleSide}),
-    wheelCone:smooth({color:0x5a1420,specular:0x140a0a,shininess:12,side:THREE.DoubleSide}),
-    wheelRim:smooth({color:0x4a1018,specular:0x111111,shininess:12,side:THREE.DoubleSide}),
-    rimLine:smooth({color:0xd9b45a,specular:0x222222,shininess:12}),
+    wheelWood:smooth({color:0x2a0d14,specular:0x140a0a,shininess:12,side:THREE.DoubleSide}),
+    wheelTrack:smooth({color:0x2c0710,specular:0x0a0405,shininess:8,side:THREE.DoubleSide}),
+    wheelCone:smooth({color:0xffffff,map:canvasTex(512,64,(g,w,h)=>{ g.fillStyle='#5e1a29'; g.fillRect(0,0,w,h); const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(0,0,0,.25)'); g.fillStyle=gr; g.fillRect(0,0,w,h); g.fillStyle='#3a0d18'; for(let k=0;k<12;k++) g.fillRect(k*w/12-3,0,6,h); g.fillStyle='rgba(255,170,170,.12)'; for(let k=0;k<12;k++) g.fillRect(k*w/12+3,0,2,h); }),specular:0x1a0a0a,shininess:14,side:THREE.DoubleSide}),
+    wheelRim:smooth({color:0x141217,specular:0x222228,shininess:18,side:THREE.DoubleSide}),
+    rimLine:smooth({color:0xdcdce2,specular:0x444444,shininess:20}),
     numBlock:new THREE.MeshPhongMaterial({color:0xffffff,flatShading:true,shininess:8,specular:0x111111}),
-    turret:new THREE.MeshPhongMaterial({color:0xff8f2e,flatShading:true,shininess:20,specular:0x332211,emissive:0x2a1000}),
-    cellMat:new THREE.MeshPhongMaterial({color:0xffffff,flatShading:true,shininess:8,specular:0x111111}),
+    turret:smooth({color:0xff8a2a,specular:0x664422,shininess:28,emissive:0x2a0e00}),
+    cellMat:smooth({color:0xffffff,shininess:16,specular:0x222222}),
     rlText:new THREE.MeshBasicMaterial({map:T.rlText,transparent:true,depthWrite:false,toneMapped:false}),
     rlNums:new THREE.MeshBasicMaterial({map:T.rlNums,transparent:true,depthWrite:false,toneMapped:false,side:THREE.DoubleSide}),
     goldSmooth:smooth({color:0xb8862e,specular:0x4a3a1c,shininess:30,emissive:0x140c00}),
@@ -3105,6 +3105,17 @@ function chipStack(x,z,n,color,parent){
   const h=0.008*n; cyl(0.022,0.022,h,14,m,x,0.86+h/2,z,parent);
 }
 function rlBallY(r){ let s; if(r>=0.385) s=0.05+(r-0.385)/0.045*0.018; else if(r>=0.2863) s=0.05; else s=0.02; return s+0.016; }
+function flutedTurret(){
+  return geo('rlTurret3',()=>{
+    const prof=[[0,0],[0.094,0],[0.097,0.012],[0.088,0.024],[0.072,0.034],[0.062,0.05],[0.064,0.07],[0.072,0.09],[0.077,0.11],[0.078,0.13],[0.074,0.15],[0.064,0.17],[0.05,0.19],[0.037,0.205],[0.03,0.218],[0.034,0.228],[0.05,0.24],[0.056,0.255],[0.05,0.27],[0.034,0.28],[0.024,0.29],[0.03,0.302],[0.033,0.316],[0.026,0.328],[0,0.334]];
+    const gm=new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)),96), p=gm.attributes.position;
+    for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i), r=Math.hypot(x,z); if(r<1e-6) continue;
+      const a=Math.atan2(z,x); let k=1;
+      if(y>0.036&&y<0.2){ const env=Math.sin((y-0.036)/0.164*Math.PI); k=1+0.085*env*Math.cos(14*(a+y*5.5)); }
+      else if(y>0.228&&y<0.272){ k=1+0.06*Math.cos(10*a); }
+      p.setXYZ(i,x*k,y,z*k); }
+    gm.computeVertexNormals(); return gm; });
+}
 function latheGeo(key,pts,seg){ return geo(key,()=>new THREE.LatheGeometry(pts.map(([r,y])=>new THREE.Vector2(r,y)),seg||72)); }
 function planarize(gm,Rt){ const p=gm.attributes.position, uv=gm.attributes.uv; for(let i=0;i<p.count;i++) uv.setXY(i,p.getX(i)/(2*Rt)+0.5,-p.getZ(i)/(2*Rt)+0.5); uv.needsUpdate=true; return gm; }
 function buildRouletteWheel(g){
@@ -3136,7 +3147,7 @@ function buildRouletteWheel(g){
   for(let i=0;i<37;i++){ const f=i*SEG-SEG/2-Math.PI/2; d.position.set(Math.cos(f)*0.2558,0.012,Math.sin(f)*0.2558); d.rotation.set(0,-f,0); d.updateMatrix(); frets.setMatrixAt(i,d.matrix); }
   spinG.add(frets);
   mesh(latheGeo('rlCone2',[[0.2254,0.024],[0.19,0.034],[0.14,0.05],[0.08,0.062],[0.03,0.068],[0,0.07]]),M.wheelCone,0,0,0,spinG);
-  mesh(latheGeo('rlTurret',[[0,0],[0.07,0],[0.074,0.012],[0.05,0.03],[0.034,0.06],[0.05,0.1],[0.056,0.13],[0.04,0.16],[0.024,0.18],[0.03,0.2],[0.02,0.215],[0.028,0.235],[0,0.25]],18),M.turret,0,0.066,0,spinG);
+  mesh(flutedTurret(),M.turret,0,0.064,0,spinG);
   const ballM=mesh(geo('ball',()=>new THREE.SphereGeometry(0.016,16,12)),M.ball,0.41,rlBallY(0.41),0,wg);
   return {spinG,ballM};
 }
@@ -3148,15 +3159,15 @@ function rouletteTable(px,pz,rot){
   const felt=new THREE.Mesh(geo('rlFelt',()=>new THREE.PlaneGeometry(1.5,3.4)),M.rlFelt); felt.rotation.x=-Math.PI/2; felt.position.set(0,0.862,0); g.add(felt);
   const {spinG,ballM}=buildRouletteWheel(g);
   const cellKeys=['n0'].concat(Array.from({length:36},(_,i)=>'n'+(i+1)),['c1','c2','c3','d1','d2','d3','low','even','red','black','odd','high']);
-  const cells=new THREE.InstancedMesh(geo('rlCellBox',()=>new THREE.BoxGeometry(1,1,1)),M.cellMat,cellKeys.length), cd=new THREE.Object3D();
+  const cells=new THREE.InstancedMesh(cushionGeo(1,1,1),M.cellMat,cellKeys.length), cd=new THREE.Object3D();
   cellKeys.forEach((k,i)=>{
-    const r=rlCellRect(k); cd.position.set(r.lx,0.87,r.lz); cd.scale.set(r.sx*0.88,0.016,r.sz*0.9); cd.updateMatrix(); cells.setMatrixAt(i,cd.matrix);
-    const col=k==='n0'?0x2fa04f:k.charAt(0)==='n'?(RL_REDS.has(+k.slice(1))?0xc8243a:0x1c1a22):k==='red'?0xc8243a:k==='black'?0x1c1a22:0x17643a;
+    const r=rlCellRect(k); cd.position.set(r.lx,0.881,r.lz); cd.scale.set(r.sx*0.9,0.036,r.sz*0.9); cd.updateMatrix(); cells.setMatrixAt(i,cd.matrix);
+    const col=k==='n0'?0x7cc142:k.charAt(0)==='n'?(RL_REDS.has(+k.slice(1))?0xd0303f:0x2b2734):k==='red'?0xd0303f:k==='black'?0x2b2734:k.charAt(0)==='d'?0xd9a3aa:0xc4808a;
     if(cells.setColorAt) cells.setColorAt(i,new THREE.Color(col));
   });
   if(cells.instanceColor) cells.instanceColor.needsUpdate=true;
   g.add(cells);
-  const ftxt=new THREE.Mesh(geo('rlFelt',()=>new THREE.PlaneGeometry(1.5,3.4)),M.rlText); ftxt.rotation.x=-Math.PI/2; ftxt.position.set(0,0.8795,0); g.add(ftxt);
+  const ftxt=new THREE.Mesh(geo('rlFelt',()=>new THREE.PlaneGeometry(1.5,3.4)),M.rlText); ftxt.rotation.x=-Math.PI/2; ftxt.position.set(0,0.8995,0); g.add(ftxt);
   const ref={anim:null,rest:null,ba:Math.random()*TAU};
   tickers.push((t,dt)=>{
     const a=ref.anim;
@@ -3175,16 +3186,17 @@ function rouletteTable(px,pz,rot){
     }
   });
   ref.spin=(n,T)=>{ const w0=spinG.rotation.y, rel0=ref.ba+w0, target=RL_IDX.get(n)*(TAU/37)-Math.PI/2, m=Math.ceil((7*TAU-(target-rel0))/TAU); ref.anim={t0:performance.now(),T,w0,rel0,rel1:target+TAU*m}; ref.rest=null; };
-  ref.g=g; ref.felt=felt; ref.chips={};
+  ref.g=g; ref.felt=ftxt; ref.chips={};
+  felt.userData=ftxt.userData;
   felt.userData.onClick=h=>{ const k=h.uv?rlKeyAt(h.uv.y*1020,h.uv.x*450):null; if(k){ clickDom('.cell[data-key="'+k+'"]'); } };
   const playGo=()=>{ if(!clickDom('[data-a="spin"]')){ const m=$('tableBody').querySelector('.msg'); if(m&&!(seatApi&&seatApi.spinning&&seatApi.spinning())) m.textContent='Put some chips on the table first.'; } };
   const play=cushion(g,{label:'PLAY',color:0x34b84a,x:0.98,y:0.865,z:0.95,w:0.22,d:0.42,h:0.12,fn:playGo,hover:'Spin the wheel'}).b, pl=play;
   ref.play=play; ref.playLabel=pl;
   felt.userData.label=h=>{ const k=h.uv?rlKeyAt(h.uv.y*1020,h.uv.x*450):null; return k?domLabel('.cell[data-key="'+k+'"]','Bet on '):null; };
-  felt.userData.hover=h=>{ const k=h.uv?rlKeyAt(h.uv.y*1020,h.uv.x*450):null; showHoverRect(k?rlCellRect(k):null,0.8805); };
-  ref.stackAt=k=>{ const r=rlCellRect(k); return r?[r.lx,0.879,r.lz]:null; };
+  felt.userData.hover=h=>{ const k=h.uv?rlKeyAt(h.uv.y*1020,h.uv.x*450):null; showHoverRect(k?rlCellRect(k):null,0.9005); };
+  ref.stackAt=k=>{ const r=rlCellRect(k); return r?[r.lx,0.898,r.lz]:null; };
   box(0.28,0.05,3.1,M.darkWood,0.98,0.84,0.3,g);
-  ref.targets=[felt,play,pl].concat(kiosk(g,1.3,0,-0.95,0.37,true),
+  ref.targets=[ftxt,play,pl].concat(kiosk(g,1.3,0,-0.95,0.37,true),
     btn3(g,{label:'UNDO',color:0x6f7fa8,css:'#6f7fa8',x:0.98,y:0.865,z:1.32,w:0.2,d:0.24,fn:()=>clickDom('[data-a="undo"]'),hover:'Undo your last chip'}),
     btn3(g,{label:'CLEAR',color:0xd23c3c,css:'#d23c3c',x:0.98,y:0.865,z:1.58,w:0.2,d:0.24,fn:()=>clickDom('[data-a="clear"]'),hover:'Take all your chips back'}),
     btn3(g,{label:'REBET',color:0xd9a51c,css:'#d9a51c',x:0.98,y:0.865,z:-0.25,w:0.2,d:0.24,fn:()=>clickDom('[data-a="rebet"]'),hover:'Place your last bets again'}));
@@ -3226,19 +3238,20 @@ function blackjackTable(px,pz,rot){
   const setD=mkTot(0.46,1.2), setP=mkTot(1.08,1.06);
   const clean=v=>v&&v!=='–'?String(v).replace(/\s*\(soft\)/,''):'';
   ref.setTotals=(d,p)=>{ setD(clean(d)); setP(clean(p)); };
-  box(0.48,0.05,2.5,M.darkWood,1.9,0.84,0.45,g);
-  box(0.5,0.03,2.52,M.leather,1.9,0.81,0.45,g);
-  const pills=[
-    pillow(g,{label:'DEAL',a:'deal',color:0x34b84a,x:2.0,y:0.865,z:0.48,fn:()=>clickDom('[data-a="deal"]'),hover:'Deal the cards (bets your last bet if the circle is empty)'}),
-    pillow(g,{label:'DOUBLE',a:'double',color:0x4b4fc4,x:2.0,y:0.865,z:0.16,fn:()=>clickDom('[data-a="double"]'),hover:'Double: twice the bet, one more card'}),
-    pillow(g,{label:'STAND',a:'stand',color:0xd9a51c,x:2.0,y:0.865,z:-0.16,fn:()=>clickDom('[data-a="stand"]'),hover:'Stand: keep your cards'}),
-    pillow(g,{label:'HIT',a:'hit',color:0xd42a2a,x:2.0,y:0.865,z:-0.48,fn:()=>clickDom('[data-a="hit"]'),hover:'Hit: take another card'})
-  ];
+  box(0.48,0.05,2.0,M.darkWood,1.9,0.84,0.2,g);
+  box(0.5,0.03,2.02,M.leather,1.9,0.81,0.2,g);
+  const con=new THREE.Group(); con.position.set(1.97,1.04,0.05); con.rotation.order='YXZ'; con.rotation.set(-0.62,Math.PI/2,0); g.add(con);
+  mesh(geo('bjCon',()=>roundBox(1.16,0.34,0.08,0.035,2)),lamb(0x1a1920),0,0,-0.04,con);
+  mesh(geo('bjConF',()=>roundBox(1.12,0.3,0.02,0.02,2)),lamb(0x26252d),0,0,-0.004,con);
+  box(0.06,0.14,0.06,lamb(0x1a1920),0,-0.16,-0.06,con);
+  const conK=new THREE.Group(); conK.rotation.x=Math.PI/2; conK.position.z=0.004; con.add(conK);
+  const pills=[['DOUBLE','double',0x6a5fd8,'Double: twice the bet, one more card'],['STAND','stand',0xf0a31a,'Stand: keep your cards'],['HIT','hit',0xe0302a,'Hit: take another card'],['PLAY','deal',0x7cc142,'Play: deal the cards (bets your last bet if the circle is empty)']]
+    .map(([label,a,color,hover],i)=>cushion(conK,{label,color,x:-0.405+i*0.27,y:0,z:0,w:0.25,d:0.24,h:0.1,face:'z',fn:()=>clickDom('[data-a="'+a+'"]'),hover,a}));
   tickers.push(()=>{
     const mine=tableMount&&tableMount.st.ref===ref;
     pills.forEach(p=>{ let off=false; if(mine){ const el=$('tableBody').querySelector('[data-a="'+p.a+'"]'); off=!el||el.disabled||el.hidden; } if(off!==p.off){ p.off=off; p.mat.color.copy(off?p.dim:p.col); } });
   });
-  ref.targets=[spot].concat(kiosk(g,1.92,0.865,1.1,2.62,false),pills.map(p=>p.b));
+  ref.targets=[spot].concat(kiosk(g,2.12,0,-1.02,0.5,true),pills.map(p=>p.b));
   neonSign('BLACKJACK',{font:'800 72px '+UI,color:'#9fe7ff',glow:'#2a8cff',board:true,w:512,h:128,spacing:'5px'},0.2,3.3,0,Math.PI/2,2.4,0.6,g);
   boxCollider(px,pz,rot,-0.85,2.14,-1.66,1.66);
   addStation('blackjack','Play Blackjack',px,pz,rot,2.55,0,0.6,0,ref);
@@ -3659,7 +3672,7 @@ function cushionGeo(W,H,D){
     g.computeVertexNormals(); return g;
   });
 }
-function cushionTex(label,css,W,D){
+function cushionTex(label,css,W,D,ink){
   const cw=512, chh=Math.max(96,Math.min(1024,Math.round(512*D/W)));
   return canvasTex(cw,chh,(g,w,h)=>{
     let text=label;
@@ -3670,6 +3683,8 @@ function cushionTex(label,css,W,D){
     g.textAlign='center'; g.textBaseline='middle'; try{ g.fontStretch='condensed'; }catch(e){}
     let fs=Math.round(h*0.62); const fam=' Archivo, "Arial Narrow", Arial, sans-serif';
     g.font='900 '+fs+'px'+fam; while(g.measureText(text).width>w*0.8&&fs>20){ fs-=4; g.font='900 '+fs+'px'+fam; }
+    if(ink){ g.font='italic 900 '+fs+'px'+fam; while(g.measureText(text).width>w*0.78&&fs>20){ fs-=4; g.font='italic 900 '+fs+'px'+fam; }
+      g.fillStyle='rgba(255,255,255,.55)'; g.fillText(text,w/2+fs*0.02,h/2+fs*0.1); g.fillStyle=ink; g.fillText(text,w/2,h/2+fs*0.05); return; }
     const dark=shade(css,0.42);
     g.lineJoin='round'; g.lineWidth=fs*0.2; g.strokeStyle=dark; g.strokeText(text,w/2,h/2+fs*0.1);
     g.lineWidth=fs*0.13; g.strokeStyle=shade(css,0.6); g.strokeText(text,w/2,h/2+fs*0.04);
@@ -3679,7 +3694,7 @@ function cushionTex(label,css,W,D){
 function cushion(parent,o){
   const zf=o.face==='z', TW=zf?o.w:o.d, TD=zf?o.d:o.w, Hh=o.h||Math.max(0.07,Math.min(0.13,Math.min(TW,TD)*0.42));
   const css=o.css||('#'+new THREE.Color(o.color).getHexString());
-  const mat=new THREE.MeshPhongMaterial({color:0xffffff,map:cushionTex(o.label,css,TW,TD),shininess:12,specular:0x222222});
+  const mat=new THREE.MeshPhongMaterial({color:0xffffff,map:cushionTex(o.label,css,TW,TD,o.ink),shininess:12,specular:0x222222});
   mat.userData.keepSmooth=true;
   const b=new THREE.Mesh(cushionGeo(TW,Hh,TD),mat);
   const y0=o.y+Hh/2; b.position.set(o.x,y0,o.z); if(!zf) b.rotation.y=Math.PI/2; parent.add(b);
@@ -3724,6 +3739,7 @@ function kioskPress(key){
   if(!state) return;
   if(/^[0-9]$/.test(key)){ if(state.chip==='all'||kioskFresh){ state.betAmt=0; kioskFresh=false; } state.chip='amt'; state.betAmt=Math.min((state.betAmt||0)*10+(+key),1e12); }
   else if(key==='C'){ state.chip='amt'; state.betAmt=0; kioskFresh=false; }
+  else if(key==='000'){ if(state.chip==='all'){ state.betAmt=0; } state.chip='amt'; state.betAmt=Math.min((state.betAmt||0)*1000,1e12); kioskFresh=false; }
   else if(key==='back'){ state.chip='amt'; state.betAmt=Math.floor((state.betAmt||0)/10); kioskFresh=false; }
   else if(key==='min'){ state.chip='amt'; state.betAmt=10*floorMult(); kioskFresh=true; }
   else if(key==='half'){ state.chip='amt'; state.betAmt=Math.max(1,Math.floor(state.money/2)); kioskFresh=true; }
@@ -3731,21 +3747,37 @@ function kioskPress(key){
   save(); sfx.chip(); redrawKiosk();
 }
 function redrawKiosk(){ if(!tableMount||!tableMount.st.ref) return; const t=(tableMount.st.ref.targets||[]).find(o=>o.userData&&o.userData.kiosk); if(t) t.userData.kiosk.tex.userData.redraw(); }
+function drawKpDisplay(g,w,h){
+  g.fillStyle='#060708'; g.fillRect(0,0,w,h); g.fillStyle='#0f1d17'; rrect(g,8,8,w-16,h-16,16); g.fill();
+  const st=state||{}, all=st.chip==='all', amt=all?(st.money||0):(st.betAmt||0), over=!all&&amt>(st.money||0);
+  g.textBaseline='middle'; g.font='800 21px '+UI; g.fillStyle=over?'#ff7a7a':'#7fa595'; g.textAlign='left'; g.fillText(over?'TOO MUCH!':'YOUR BET',26,32);
+  g.textAlign='right'; g.fillStyle='#7fa595'; g.fillText('CASH '+fmtShort(st.money||0),w-26,32);
+  const txt=all?'ALL IN':money(amt); let fs=64; g.font='900 '+fs+'px '+UI; while(g.measureText(txt).width>w-60&&fs>20){ fs-=2; g.font='900 '+fs+'px '+UI; }
+  g.save(); g.textAlign='center'; g.fillStyle=all||over?'#ff5a5a':'#5dff98'; g.shadowColor=g.fillStyle; g.shadowBlur=12; g.fillText(txt,w/2,h/2+20); g.restore();
+}
+const KP_KEYS=[['1','2','3'],['4','5','6'],['7','8','9'],['C','0','000']];
 function kiosk(parent,x,y,z,rotY,stand){
   const k={hover:null}, kg=new THREE.Group(); kg.position.set(x,y,z); kg.rotation.y=rotY; parent.add(kg);
-  const postH=stand?0.82:0.12;
-  cyl(0.03,0.035,postH,8,M.chrome,0,postH/2,0,kg);
-  if(stand) cyl(0.2,0.22,0.035,16,M.darkWood,0,0.017,0,kg);
-  const sg=new THREE.Group(); sg.position.set(0,postH+0.43,0); sg.rotation.x=stand?-0.22:-0.38; kg.add(sg);
-  box(0.73,0.96,0.04,lamb(0x111116),0,0,-0.024,sg);
-  const kd=drawKiosk(k); k.tex=canvasTex(KW*1.5,KH*1.5,(g,w,h)=>{ g.save(); g.scale(1.5,1.5); kd(g,KW,KH); g.restore(); },{text:true});
-  const m=mesh(geo('kioskScr3',()=>new THREE.PlaneGeometry(0.67,0.893)),new THREE.MeshBasicMaterial({map:k.tex,toneMapped:false}),0,0,0.001,sg);
-  const keyOf=h=>h&&h.uv?kioskKeyAt(h.uv.x*KW,(1-h.uv.y)*KH):null;
-  m.userData={kiosk:k,onClick:h=>{ const key=keyOf(h); if(key) kioskPress(key); },
-    hover:h=>{ const key=keyOf(h); if(key!==k.hover){ k.hover=key; k.tex.userData.redraw(); } },
-    unhover:()=>{ if(k.hover){ k.hover=null; k.tex.userData.redraw(); } },
-    label:h=>{ const key=keyOf(h); return !key?'Type your bet on the screen':/^[0-9]$/.test(key)?'Type '+key:key==='C'?'Clear the bet':key==='back'?'Delete the last number':key==='min'?'Smallest bet ('+money(10*floorMult())+')':key==='half'?'Bet half your cash':'Bet ALL your money'; }};
-  return [m];
+  const postH=stand?0.8:0.06;
+  cyl(0.032,0.038,postH,10,M.black,0,postH/2,0,kg);
+  if(stand){ cyl(0.2,0.23,0.04,20,M.black,0,0.02,0,kg); }
+  const sg=new THREE.Group(); sg.position.set(0,postH+0.3,-0.04); sg.rotation.x=stand?-0.86:-1.0; kg.add(sg);
+  mesh(geo('kpBody',()=>roundBox(0.62,0.92,0.09,0.035,2)),lamb(0x2a2830),0,0,-0.045,sg);
+  mesh(geo('kpFace',()=>roundBox(0.58,0.88,0.02,0.02,2)),lamb(0x36343d),0,0,-0.005,sg);
+  k.tex=canvasTex(512,128,drawKpDisplay,{text:true});
+  const disp=mesh(geo('kpDisp',()=>new THREE.PlaneGeometry(0.52,0.13)),new THREE.MeshBasicMaterial({map:k.tex,toneMapped:false}),0,0.355,0.008,sg);
+  disp.userData={kiosk:k,label:'Your bet. Type it with the keys'};
+  const keysG=new THREE.Group(); keysG.rotation.x=Math.PI/2; keysG.position.z=0.004; sg.add(keysG);
+  const out=[disp];
+  const lab=key=>/^[0-9]$/.test(key)?'Type '+key:key==='C'?'Clear the bet':key==='000'?'Add 000 (times 1,000)':key==='min'?'Smallest bet ('+money(10*floorMult())+')':key==='half'?'Bet half your cash':'Bet ALL your money';
+  KP_KEYS.forEach((row,r)=>row.forEach((key,c)=>{
+    const red=key==='C';
+    const cu=cushion(keysG,{label:key,css:red?'#d8382c':'#ead3cb',ink:red?null:'#231a1c',x:(c-1)*0.182,y:0,z:-0.2+r*0.15,w:0.165,d:0.132,h:0.075,face:'z',fn:()=>kioskPress(key),hover:lab(key)});
+    out.push(cu.b); }));
+  [['min','MIN','#3d6fe0'],['half','HALF','#3d6fe0'],['all','ALL IN','#8a44e0']].forEach(([key,label,css],c)=>{
+    const cu=cushion(keysG,{label,css,x:(c-1)*0.182,y:0,z:0.372,w:0.165,d:0.075,h:0.05,face:'z',fn:()=>kioskPress(key),hover:key==='min'?()=>lab(key):lab(key)});
+    out.push(cu.b); });
+  return out;
 }
 function chipRow(parent,pts,face){
   const out=[];
@@ -3834,7 +3866,7 @@ function seatTick(){
     const k=seatApi.bet()+'|'+seatApi.lastWin();
     if(k!==lastSlotUI){ lastSlotUI=k; if(st.ref.setDisplay) st.ref.setDisplay(seatApi.bet(),seatApi.lastWin()); }
   }
-  const chipTxt=st.type==='slots'?'Bet '+money(seatApi.bet?seatApi.bet():0)+' · use MIN, 1/4, 1/2, ALL':(state.chip==='all'?'ALL IN: every bet uses all your money ('+money(state.money)+')':'Bet '+money(state.betAmt||0))+' · type it on the screen (or keys 0–9)';
+  const chipTxt=st.type==='slots'?'Bet '+money(seatApi.bet?seatApi.bet():0)+' · use MIN, 1/4, 1/2, ALL':(state.chip==='all'?'ALL IN: every bet uses all your money ('+money(state.money)+')':'Bet '+money(state.betAmt||0))+' · type it on the keypad (or keys 0–9)';
   if($('tableChip').textContent!==chipTxt) $('tableChip').textContent=chipTxt;
 }
 function buildDecor(){
