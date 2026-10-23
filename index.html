@@ -4226,7 +4226,7 @@ function duckRaceStand(px,pz){
   box(3.95,laneY(NL-1)+0.25,0.1,wood,-0.05,(laneY(NL-1)+0.25)/2,laneZ(NL-1)-LW/2-0.05,g);
   const archH=laneY(NL-1)+0.7, zc=laneZ(2.5);
   [laneZ(0)+LW/2+0.04,laneZ(NL-1)-LW/2-0.04].forEach(z=>cyl(0.03,0.03,archH,8,M.chrome,X1,archH/2,z,g));
-  const ban=mesh(geo('drBan',()=>new THREE.PlaneGeometry(NL*LW+0.1,0.16)),new THREE.MeshBasicMaterial({map:canvasTex(512,64,(c,w,h)=>{ for(let x=0;x<w;x+=32) for(let y=0;y<h;y+=32){ c.fillStyle=((x+y)/32)%2?'#111':'#fff'; c.fillRect(x,y,32,32); } c.fillStyle='rgba(212,42,53,.92)'; c.fillRect(w/2-110,8,220,48); c.fillStyle='#fff'; c.font='900 36px '+UI; c.textAlign='center'; c.textBaseline='middle'; c.fillText('FINISH',w/2,33); },{text:true}),side:THREE.DoubleSide,toneMapped:false}),X1,archH-0.05,zc,g); ban.rotation.y=Math.PI/2;
+  const ban=mesh(geo('drBan',()=>new THREE.PlaneGeometry(NL*LW+0.1,0.16)),new THREE.MeshBasicMaterial({map:canvasTex(512,64,(c,w,h)=>{ for(let x=0;x<w;x+=32) for(let y=0;y<h;y+=32){ c.fillStyle=((x+y)/32)%2?'#111':'#fff'; c.fillRect(x,y,32,32); } c.fillStyle='rgba(212,42,53,.92)'; c.fillRect(w/2-110,8,220,48); c.fillStyle='#fff'; c.font='900 36px '+UI; c.textAlign='center'; c.textBaseline='middle'; c.fillText('FINISH',w/2,33); },{text:true}),side:THREE.DoubleSide,toneMapped:false}),X1,archH-0.05,zc,g); ban.rotation.y=-Math.PI/2;
   // odds board
   const bs={odds:ref.odds,win:null};
   const boardTex=canvasTex(1024,300,(c,w,h)=>{
