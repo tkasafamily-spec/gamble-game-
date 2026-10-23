@@ -712,7 +712,7 @@ function loadState(d){
   s.wonBig=d.wonBig===true;
   if(Number.isInteger(d.refills)) s.refills=d.refills;
   if(d.chip==='all'||d.chip==='amt') s.chip=d.chip;
-  if(Number.isFinite(d.betAmt)&&d.betAmt>=0) s.betAmt=Math.floor(d.betAmt);
+  if(Number.isFinite(d.betAmt)&&d.betAmt>=0) s.betAmt=Math.min(Math.floor(d.betAmt),Math.max(50,s.money));
   if(typeof d.sound==='boolean') s.sound=d.sound;
   if(d.rl&&typeof d.rl==='object'){
     if(Array.isArray(d.rl.history)) s.rl.history=d.rl.history.filter(n=>Number.isInteger(n)&&n>=0&&n<=36).slice(0,14);
