@@ -2118,7 +2118,7 @@ function partyBegin(created){
   if(!party.solo){ try{ party.solo=JSON.parse(JSON.stringify(state)); party.soloKey=saveKey(); localStorage.setItem(party.soloKey+':solo',JSON.stringify(party.solo)); }catch(_){} }
   partySoloLock=true;
   if(cut){ cut=null; hideBig(); $('fade').classList.remove('on'); if(mode==='cut') mode='walk'; syncHud(); }
-  if(created){ partyNewRun(1); showBig('PARTY TIME! 🎉','Everyone shares one pot of '+money(START)+'. Make the quota together!'); setTimeout(()=>{ if(!cut&&$('bigMsgT').textContent.indexOf('PARTY')===0) hideBig(); },4200); }
+  if(created) partyNewRun(1);
   else partyNewRun(0);
 }
 function partyNewRun(pr,why){
@@ -2145,7 +2145,7 @@ function partyFollow(b){
   const ph=myPh(), F=state.floor||0;
   if(b.ph===1&&((ph===0&&b.fl===0)||(ph===2&&b.fl===F))){
     state.inRun=true; state.between=false; state.floor=b.fl; state.dayLeft=b.dl||DAY_SECS[b.fl]; state.quotaMet=false; setFloor(b.fl); save(); renderCash(); renderDay();
-    if(loc==='lobby'){ showBig(String(b.name).toUpperCase()+' STARTED DAY '+(b.fl+1)+'!','Walk through the doors. The clock is ticking!'); setTimeout(()=>{ if(loc==='lobby'&&!cut) hideBig(); },3400); sfx.fanfare(); }
+    if(loc==='lobby') toast(b.name+' started Day '+(b.fl+1)+'. Walk through the doors to join in!','win');
     return;
   }
   if(ph===1&&b.ph===2&&b.fl===F+1){ endOfDay(false,true); return; }
@@ -2331,7 +2331,7 @@ function partyTick(dt){
     if(a&&a.lk!==lk){ scene.remove(a.g); party.avatars.delete(m.id); a=null; }
     if(!a){
       const h=nameHash(m.name), wrap=new THREE.Group();
-      const body=person({shirt:m.shirt!=null?m.shirt:PARTY_SHIRTS[h%PARTY_SHIRTS.length],pants:m.pants!=null?m.pants:0x1c1c22,skin:m.skin,hair:HAIRS[h%HAIRS.length],h:1.72,feat:m.feat!=null?m.feat:h%4,hat:m.hat,style:m.style});
+      const body=person({shirt:m.shirt!=null?m.shirt:PARTY_SHIRTS[h%PARTY_SHIRTS.length],pants:m.pants!=null?m.pants:0x1c1c22,skin:m.skin,hair:HAIRS[h%HAIRS.length],h:1.72,feat:m.feat!=null?m.feat:-1,hat:m.hat,style:m.style,faceUp:PF_UP});
       wrap.add(playerWrap(body)); const tex=nameTagTex(m.name); const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,toneMapped:false,depthTest:false})); sp.scale.set(1.0,0.225,1); sp.position.y=playerTop()+0.45; wrap.add(sp);
       wrap.position.set(m.x,0,m.z); wrap.rotation.y=m.yaw+Math.PI; scene.add(wrap);
       a={g:wrap,body,name:m.name,lk}; party.avatars.set(m.id,a);
@@ -2536,7 +2536,7 @@ function lookOf(){ const L=state.look||{}; return {skin:state.skin||0x2f8cf5,shi
 function rebuildMe(){
   if(!scene) return;
   if(meAvatar) scene.remove(meAvatar);
-  const L=lookOf(); meAvatar=playerWrap(person({skin:L.skin,shirt:L.shirt,pants:L.pants,hair:0x2a1b3d,feat:L.feat,hat:L.hat,style:L.style,armUp:1}));
+  const L=lookOf(); meAvatar=playerWrap(person({skin:L.skin,shirt:L.shirt,pants:L.pants,hair:0x2a1b3d,feat:L.feat,hat:L.hat,style:L.style,armUp:1,faceUp:PF_UP}));
   meAvatar.traverse(o=>o.layers.set(1)); scene.add(meAvatar);
 }
 function setLook(k,v){
@@ -3613,7 +3613,7 @@ function rouletteTable(px,pz,rot){
   box(0.36,0.08,2.5,RL_EDGE,0.97,0.82,0.65,g);
   const play=cushion(g,{label:'PLAY',color:0x86c832,x:0.97,y:0.86,z:-0.3,w:0.32,d:0.5,h:0.09,fn:playGo,hover:'Spin the wheel'}).b;
   ref.play=play; ref.playLabel=play;
-  ref.targets=[ftxt,play].concat(kiosk(g,1.5,0,1.3,3.05,true,0.8),
+  ref.targets=[ftxt,play].concat(kiosk(g,1.8,0,1.3,3.05,true,0.8),
     btn3(g,{label:'REBET',color:0xd23c4c,css:'#d23c4c',x:0.97,y:0.86,z:0.22,w:0.32,d:0.34,h:0.075,fn:()=>clickDom('[data-a="rebet"]'),hover:'Place your last bets again'}),
     btn3(g,{label:'UNDO',color:0x6f7fa8,css:'#6f7fa8',x:0.97,y:0.86,z:0.62,w:0.32,d:0.3,h:0.07,fn:()=>clickDom('[data-a="undo"]'),hover:'Undo your last chip'}),
     btn3(g,{label:'CLEAR',color:0x8a8494,css:'#8a8494',x:0.97,y:0.86,z:0.98,w:0.32,d:0.3,h:0.07,fn:()=>clickDom('[data-a="clear"]'),hover:'Take all your chips back'}));
@@ -3676,7 +3676,7 @@ function blackjackTable(px,pz,rot){
     const mine=tableMount&&tableMount.st.ref===ref;
     pills.forEach(p=>{ let off=false; if(mine){ const el=$('tableBody').querySelector('[data-a="'+p.a+'"]'); off=!el||el.disabled||el.hidden; } if(off!==p.off){ p.off=off; p.mat.color.copy(off?p.dim:p.col); } });
   });
-  ref.targets=[spot].concat(kiosk(g,2.12,0,-1.02,0.5,true),pills.map(p=>p.b));
+  ref.targets=[spot].concat(kiosk(g,2.52,0,-1.92,0.5,true),pills.map(p=>p.b));
   neonSign('BLACKJACK',{font:'800 72px '+UI,color:'#9fe7ff',glow:'#2a8cff',board:true,w:512,h:128,spacing:'5px'},0.2,3.3,0,Math.PI/2,2.4,0.6,g);
   boxCollider(px,pz,rot,-0.85,2.14,-1.66,1.66);
   addStation('blackjack','Play Blackjack',px,pz,rot,2.55,0,0.6,0,ref);
@@ -3713,7 +3713,7 @@ function diceTable(px,pz,rot){
   felt.userData.onClick=h=>{ const k=h.uv?dcKeyAt(h.uv.y*780,h.uv.x*420):null; if(k) clickDom('.spots .spot:nth-child('+(DCK.indexOf(k)+1)+')'); };
   ref.stackAt=k=>{ const r=dcRect(k); return r?[r.lx,0.875,r.lz]:null; };
   box(0.24,0.05,2.3,M.darkWood,0.98,0.84,0,g);
-  ref.targets=[felt].concat(kiosk(g,1.24,0,-0.88,0.37,true),
+  ref.targets=[felt].concat(kiosk(g,1.84,0,-0.88,0.37,true),
     btn3(g,{label:'ROLL',color:0x34b84a,css:'#34b84a',x:0.98,y:0.865,z:0.15,w:0.18,d:0.36,fn:()=>clickDom('[data-a="roll"]'),hover:'Roll the dice'}),
     btn3(g,{label:'CLEAR',color:0xd23c3c,css:'#d23c3c',x:0.98,y:0.865,z:0.55,w:0.16,d:0.24,fn:()=>clickDom('[data-a="clear"]'),hover:'Take all your chips back'}),
     btn3(g,{label:'REBET',color:0xd9a51c,css:'#d9a51c',x:0.98,y:0.865,z:0.85,w:0.16,d:0.24,fn:()=>clickDom('[data-a="rebet"]'),hover:'Place your last bets again'}));
@@ -3742,7 +3742,7 @@ function bigSixWall(){
   const padZ=-RD/2+1.5, frontZ=-RD/2+2.0;
   const pads=B6_KEYS.map((k,i)=>{ const sp=B6_SPOTS[k]; return btn3(cg,{label:k==='logo'?'CASINO':k==='joker'?'JOKER':sp.label,color:sp.color,css:sp.color,ink:sp.ink,x:-1.47+i*0.49,y:1.06,z:padZ,w:0.44,d:0.3,face:'z',fn:()=>clickDom('.spots .spot:nth-child('+(i+1)+')'),hover:()=>domLabel('.spots .spot:nth-child('+(i+1)+')','Bet on ')}); });
   b6ref.stackAt=k=>{ const i=B6_KEYS.indexOf(k); return i<0?null:[-1.47+i*0.49,1.1,padZ]; };
-  b6ref.targets=[].concat(...pads, kiosk(cg,-1.4,0,-RD/2+2.75,1.46,true),
+  b6ref.targets=[].concat(...pads, kiosk(cg,-1.4,0,-RD/2+2.95,1.46,true),
     btn3(cg,{label:'REBET',color:0xd9a51c,css:'#d9a51c',x:-0.52,y:1.06,z:frontZ,w:0.26,d:0.18,face:'z',fn:()=>clickDom('[data-a="rebet"]'),hover:'Place your last bets again'}),
     btn3(cg,{label:'CLEAR',color:0xd23c3c,css:'#d23c3c',x:-0.2,y:1.06,z:frontZ,w:0.26,d:0.18,face:'z',fn:()=>clickDom('[data-a="clear"]'),hover:'Take all your chips back'}),
     btn3(cg,{label:'SPIN',color:0x34b84a,css:'#34b84a',x:0.55,y:1.06,z:frontZ,w:0.9,d:0.18,face:'z',fn:()=>clickDom('[data-a="spin"]'),hover:'Spin the Big Six'}));
@@ -4251,9 +4251,10 @@ function drawKiosk(k){
 }
 function kioskPress(key){
   if(!state) return;
-  if(/^[0-9]$/.test(key)){ if(state.chip==='all'||kioskFresh){ state.betAmt=0; kioskFresh=false; } state.chip='amt'; state.betAmt=Math.min((state.betAmt||0)*10+(+key),1e12); }
+  const cap=Math.max(0,Math.floor(state.money||0));
+  if(/^[0-9]$/.test(key)){ if(state.chip==='all'||kioskFresh){ state.betAmt=0; kioskFresh=false; } state.chip='amt'; state.betAmt=Math.min((state.betAmt||0)*10+(+key),cap); }
   else if(key==='C'){ state.chip='amt'; state.betAmt=0; kioskFresh=false; }
-  else if(key==='000'){ if(state.chip==='all'){ state.betAmt=0; } state.chip='amt'; state.betAmt=Math.min((state.betAmt||0)*1000,1e12); kioskFresh=false; }
+  else if(key==='000'){ if(state.chip==='all'){ state.betAmt=0; } state.chip='amt'; state.betAmt=Math.min((state.betAmt||0)*1000,cap); kioskFresh=false; }
   else if(key==='back'){ state.chip='amt'; state.betAmt=Math.floor((state.betAmt||0)/10); kioskFresh=false; }
   else if(key==='min'){ state.chip='amt'; state.betAmt=10*floorMult(); kioskFresh=true; }
   else if(key==='half'){ state.chip='amt'; state.betAmt=Math.max(1,Math.floor(state.money/2)); kioskFresh=true; }
@@ -4314,7 +4315,7 @@ function drawKpScreen(g,w,h){
   const col=over?'#ff4d4d':all?'#ffcf3a':'#41ff7c';
   if(all){ g.save(); g.fillStyle=col; g.shadowColor=col; g.shadowBlur=18; g.font='900 64px '+UI; g.fillText('ALL IN',w/2,h*0.56); g.restore(); g.fillStyle='#9fb1a6'; g.font='800 26px '+UI; g.fillText(money(cash),w/2,h*0.56+58); }
   else {
-    const txt=amt>=1e7?fmtShort(amt):money(amt); let H=96; const len=[...txt].reduce((a,ch)=>a+(ch===','||ch==='.'?0.2:/[0-9$]/.test(ch)?0.72:0.62),0);
+    const txt=amt>=1e7?fmtK(amt):money(amt); let H=96; const len=[...txt].reduce((a,ch)=>a+(ch===','||ch==='.'?0.2:/[0-9$]/.test(ch)?0.72:0.62),0);
     H=Math.min(H,(w-40)/Math.max(1,len)); seg7(g,txt,w/2+H*0.06,h*0.56,H,col,'rgba(40,255,120,.07)');
   }
   g.fillStyle=over?'#ff8a8a':'#7f9488'; g.font='800 22px '+UI; g.fillText(over?'NOT ENOUGH CASH':all?'EVERY BET USES IT ALL':'YOUR BET',w/2,h-40);
@@ -4322,7 +4323,7 @@ function drawKpScreen(g,w,h){
 const kpTexCache={};
 function kpTex(label,css,W,D,ink,fs){ const k=label+css+W+D; return kpTexCache[k]||(kpTexCache[k]=cushionTex(label,css,W,D,ink,fs)); }
 function kiosk(parent,x,y,z,rotY,stand,sc){
-  const k={hover:null}, kg=new THREE.Group(); kg.position.set(x,y,z); kg.rotation.y=rotY; if(sc) kg.scale.setScalar(sc); parent.add(kg);
+  const k={hover:null}, kg=new THREE.Group(); kg.position.set(x,y,z); kg.rotation.y=rotY; kg.scale.setScalar((sc||1)*0.85); parent.add(kg);
   const postH=stand?0.78:0.06, dark=smooth({color:0x030304,specular:0x101012,shininess:24});
   cyl(0.035,0.04,postH,12,dark,0,postH/2,0,kg);
   if(stand){ cyl(0.22,0.25,0.04,24,dark,0,0.02,0,kg); }
@@ -4627,8 +4628,11 @@ function shapeGeo(pts){ const sh=new THREE.Shape(); pts.forEach(([x,y],i)=>i?sh.
 const beanMats={}; function beanMat(c){ if(!beanMats[c]){ const m=smooth({color:c,specular:0x5a5a5a,shininess:60,emissive:new THREE.Color(c).multiplyScalar(0.2)}); m.userData.keepShine=true; beanMats[c]=m; } return beanMats[c]; }
 const beanLine=new THREE.MeshBasicMaterial({color:0x07050b,side:THREE.BackSide});
 // players (you in the mirror, friends in a party) are scaled so their eyes are exactly where the camera is
-function playerWrap(body){ const el=BLOB_CY+0.21, sc=EYE/el; body.scale.setScalar(sc); body.position.z=-(blobFrontZ(0,el,0)-0.03)*sc; const w=new THREE.Group(); w.add(body); w.userData=body.userData; return w; }
-function playerTop(){ return (BLOB_TOP)*EYE/(BLOB_CY+0.21); }
+const PF_UP=0.12, PF_SLIM=0.7;
+function playerWrap(body){ const el=BLOB_CY+0.21+PF_UP, sy=EYE/el, sx=sy*PF_SLIM; body.scale.set(sx,sy,sx); body.position.z=-(blobFrontZ(0,el,0)-0.03)*sx;
+  body.traverse(o=>{ if(o!==body&&o.userData&&o.userData.face) o.scale.y*=PF_SLIM; });
+  const w=new THREE.Group(); w.add(body); w.userData=body.userData; return w; }
+function playerTop(){ return BLOB_TOP*EYE/(BLOB_CY+0.21+PF_UP); }
 // characters copied from the cover: soft rounded-square blobs, black oval eyes, big D smile with a tongue, stubby arms, sticker outline
 const BLOB={W:0.74,H:1.04,D:0.58,E1:0.5,E2:0.62,LEG:0.13};
 const BLOB_CY=BLOB.LEG+BLOB.H/2, BLOB_TOP=BLOB.LEG+BLOB.H;
@@ -4665,16 +4669,16 @@ function person(o){
   [-0.15,0.15].forEach(x=>{ const L=new THREE.Group(); L.position.set(x,BLOB.LEG+0.04,0); const lg=new THREE.Mesh(capsuleGeo('blobLeg',0.085,0.1),pantsM); L.add(lg);
     const f=new THREE.Mesh(geo('blobFoot',()=>new THREE.SphereGeometry(0.09,20,14)),dark); f.scale.set(1.05,0.62,1.35); f.position.set(0,-0.15,0.035); L.add(f); g.add(L); legs.push(L); });
   // face: plain black ovals + big D smile with a pink tongue
-  const ey=BLOB_CY+0.21;
-  [-1,1].forEach(sd=>{ const x=sd*0.135; const e=mesh(geo('blobEye2',()=>new THREE.SphereGeometry(0.056,24,18)),beanMat(0x0b090e),x,ey,blobFrontZ(x,ey,-0.013),g); e.scale.set(0.8,1.45,0.45); });
-  const my=BLOB_CY+0.115, MW=0.16, MD=0.16;
+  const fu=o.faceUp||0, ey=BLOB_CY+0.21+fu;
+  [-1,1].forEach(sd=>{ const x=sd*0.135; const e=mesh(geo('blobEye2',()=>new THREE.SphereGeometry(0.056,24,18)),beanMat(0x0b090e),x,ey,blobFrontZ(x,ey,-0.013),g); e.scale.set(0.8,1.45,0.45); e.userData.face=1; });
+  const my=BLOB_CY+0.115+fu, MW=0.16, MD=0.16;
   const mouthPts=[[-MW,0.004],[MW,0.004]].concat(Array.from({length:19},(_,k)=>{ const a=Math.PI*k/18; return [Math.cos(a)*MW,-Math.sin(a)*MD]; }));
-  const mouth=new THREE.Mesh(decalGeo('blobMouth3',mouthPts,my,0.006),beanMat(0x2a0b12)); mouth.position.y=my; g.add(mouth);
+  const mouth=new THREE.Mesh(decalGeo('blobMouth3'+fu,mouthPts,my,0.006),beanMat(0x2a0b12)); mouth.position.y=my; mouth.userData.face=1; g.add(mouth);
   const tPts=Array.from({length:15},(_,k)=>{ const a=Math.PI*k/14; return [Math.cos(a)*0.1,-MD+0.006+Math.sin(a)*0.09]; });
   if(style==='bow'){ const bc=beanMat(0xd42a35), by=my-MD-0.075, bz=blobFrontZ(0,by,0.02); [-1,1].forEach(sd=>{ const w=mesh(geo('blBowW',()=>new THREE.ConeGeometry(0.05,0.08,4)),bc,sd*0.045,by,bz,g); w.rotation.z=sd*Math.PI/2; w.scale.set(1,1,0.5); }); mesh(geo('blBowK',()=>new THREE.SphereGeometry(0.022,10,8)),bc,0,by,bz+0.006,g); }
-  const tongue=new THREE.Mesh(decalGeo('blobTongue3',tPts,my,0.01),beanMat(0xff6fa8)); tongue.position.y=my; g.add(tongue);
+  const tongue=new THREE.Mesh(decalGeo('blobTongue3'+fu,tPts,my,0.01),beanMat(0xff6fa8)); tongue.position.y=my; tongue.userData.face=1; g.add(tongue);
   // head bits sit on top
-  const head=new THREE.Group(); head.position.set(0,BLOB_TOP-0.2,0); head.scale.setScalar(1.22); g.add(head);
+  const head=new THREE.Group(); head.position.set(0,BLOB_TOP-0.2,0); head.scale.setScalar(1.22); head.userData.face=1; g.add(head);
   const acc=lamb(o.hair||pickHair()), feat=o.bald?-1:(o.feat!=null?o.feat:-1), G=personGeos();
   if(feat===0) [-1,1].forEach(sx=>{ mesh(G.cear,skin,sx*0.16,0.2,0,head).scale.set(1,1,0.55); mesh(G.cear,beanMat(0xff9ab8),sx*0.16,0.2,0.03,head).scale.set(0.55,0.55,0.35); });
   else if(feat===1){ mesh(G.stalk,dark,0,0.27,0,head); mesh(G.knob,acc,0,0.36,0,head); }
@@ -4923,7 +4927,7 @@ function duckRaceStand(px,pz){
   pills.push(cushion(cK,{label:'RACE',color:0x7cc142,x:0.48,y:0,z:0.13,w:0.56,d:0.15,h:0.08,face:'z',fn:()=>clickDom('[data-a="race"]'),hover:'Start the race!',a:'race'}));
   dimPills(ref,pills);
   ref.stackAt=k=>{ const i=+String(k).slice(1)-1; return i>=0&&i<NL?[-1.82,laneY(i)+0.05,laneZ(i)]:null; };
-  ref.targets=pills.map(p=>p.b).concat(kiosk(g,1.0,0,0.82,-1.0,true));
+  ref.targets=pills.map(p=>p.b).concat(kiosk(g,1.4,0,0.62,-1.0,true));
   const col=boxCollider(px,pz,0,-2.05,2.05,laneZ(NL-1)-LW/2-0.16,0.0); col.off=true; floorStands.push({g,col,floor:0});
   const col2=boxCollider(px,pz,0,-0.85,0.85,0.4,0.9); col2.off=true; floorStands.push({g,col:col2,floor:0});
   stations.push({type:'duckrace',label:'Play Duck Race',x:px,z:pz+1.5,tx:px,tz:pz-0.9,ref,onFloor:0});
@@ -4944,7 +4948,7 @@ function coinFlipTable(px,pz,floor){
   ref.targets=[].concat(
     btn3(g,{label:'HEADS',color:0xd9a51c,css:'#d9a51c',x:-0.35,y:0.87,z:0.22,w:0.5,d:0.3,face:'z',fn:()=>clickDom('.spots .spot:nth-child(1)'),hover:()=>domLabel('.spots .spot:nth-child(1)','Bet on ')}),
     btn3(g,{label:'TAILS',color:0x7d86a6,css:'#7d86a6',x:0.35,y:0.87,z:0.22,w:0.5,d:0.3,face:'z',fn:()=>clickDom('.spots .spot:nth-child(2)'),hover:()=>domLabel('.spots .spot:nth-child(2)','Bet on ')}),
-    kiosk(g,0.82,0,0.88,-1.0,true),
+    kiosk(g,1.22,0,1.68,-1.0,true),
     btn3(g,{label:'FLIP',color:0x34b84a,css:'#34b84a',x:0.6,y:0.87,z:-0.3,w:0.28,d:0.24,face:'z',fn:()=>clickDom('[data-a="flip"]'),hover:'Flip the coin'}),
     btn3(g,{label:'CLEAR',color:0xd23c3c,css:'#d23c3c',x:-0.6,y:0.87,z:-0.3,w:0.28,d:0.2,face:'z',fn:()=>clickDom('[data-a="clear"]'),hover:'Take your chips back'}));
   ref.stackAt=k=>k==='heads'?[-0.35,0.91,0.22]:k==='tails'?[0.35,0.91,0.22]:null;
@@ -5013,7 +5017,7 @@ function plinkoStand(px,pz,floor){
   const pills=[cushion(g,{label:'DROP',a:'drop',color:0x7cc142,x:0.4,y:0.88,z:0.62,w:0.56,d:0.36,h:0.13,face:'z',fn:()=>clickDom('[data-a="drop"]'),hover:'Drop a ball'})];
   const info=canvasTex(512,110,(c,w,h)=>{ c.fillStyle='#07100b'; c.fillRect(0,0,w,h); c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='#ffd27a'; c.font='800 30px '+UI; c.fillText('PLINKO · '+R+' ROWS',w/2,32); c.fillStyle='#3ee07a'; c.font='800 36px '+UI; c.fillText('UP TO '+Math.max(...PL_MULT)+'×',w/2,78); },{text:true});
   const sc=mesh(geo('plInfo',()=>new THREE.PlaneGeometry(0.5,0.107)),new THREE.MeshBasicMaterial({map:info,toneMapped:false}),-0.38,0.885,0.62,g); sc.rotation.x=-Math.PI/2+0.35;
-  ref.targets=kiosk(g,-1.12,0,1.15,1.1,true).concat(pills.map(p=>p.b));
+  ref.targets=kiosk(g,-1.42,0,1.15,1.1,true).concat(pills.map(p=>p.b));
   dimPills(ref,pills);
   neonSign('PLINKO',{font:'800 72px '+UI,color:'#ffb5f4',glow:'#ff3cc8',board:true,w:512,h:128,spacing:'8px'},0,Y0+BH*S+0.75,BZ,0,3.6,0.9,g);
   regStand(g,boxCollider(px,pz,0,-BW*S/2-0.3,BW*S/2+0.3,BZ-0.5,0.9),px,pz,floor,'plinko','Play Plinko',ref);
@@ -5047,7 +5051,7 @@ function hiloStand(px,pz,floor){
     cushion(g,{label:'HIGHER',a:'higher',color:0x34b84a,x:-0.18,y:0.875,z:0.32,w:0.34,d:0.28,face:'z',fn:()=>clickDom('[data-a="higher"]'),hover:'Next number is higher'}),
     cushion(g,{label:'CASH OUT',a:'cashout',color:0xd9a51c,x:0.22,y:0.875,z:0.32,w:0.38,d:0.28,face:'z',fn:()=>clickDom('[data-a="cashout"]'),hover:'Take the pot'}),
     cushion(g,{label:'DEAL',a:'deal',color:0x4b4fc4,x:0.6,y:0.875,z:0.32,w:0.3,d:0.28,face:'z',fn:()=>clickDom('[data-a="deal"]'),hover:'Bet and get your first number'})];
-  ref.targets=kiosk(g,1.06,0,1.2,-1.17,true).concat(pills.map(p=>p.b));
+  ref.targets=kiosk(g,1.16,0,1.3,-1.17,true).concat(pills.map(p=>p.b));
   dimPills(ref,pills);
   neonSign('HI-LO',{font:'800 80px '+UI,color:'#ffd27a',glow:'#ff6a3a',board:true,w:512,h:128,spacing:'8px'},0,3.0,-0.44,0,1.8,0.45,g);
   regStand(g,boxCollider(px,pz,0,-0.9,0.9,-0.6,0.6),px,pz,floor,'hilo','Play Hi-Lo',ref);
@@ -5095,7 +5099,7 @@ function crashStand(px,pz,floor){
   const pills=[
     cushion(g,{label:'CASH OUT',a:'cashout',color:0xd9a51c,x:0.28,y:0.88,z:0.45,w:0.32,d:0.34,h:0.13,face:'z',fn:()=>clickDom('[data-a="cashout"]'),hover:'Cash out now'}),
     cushion(g,{label:'LAUNCH',a:'launch',color:0x34b84a,x:0.63,y:0.88,z:0.45,w:0.32,d:0.34,h:0.13,face:'z',fn:()=>clickDom('[data-a="launch"]'),hover:'Bet and launch the rocket'})];
-  ref.targets=kiosk(g,-1.12,0,1.15,1.14,true).concat(pills.map(p=>p.b));
+  ref.targets=kiosk(g,-1.32,0,1.35,1.14,true).concat(pills.map(p=>p.b));
   dimPills(ref,pills);
   neonSign('CRASH',{font:'800 80px '+UI,color:'#ff9a9a',glow:'#ff2a5a',board:true,w:512,h:128,spacing:'8px'},0,2.75,-0.26,0,1.8,0.45,g);
   regStand(g,boxCollider(px,pz,0,-0.95,0.95,-0.45,0.75),px,pz,floor,'crash','Play Crash',ref);
@@ -5128,7 +5132,7 @@ function minesStand(px,pz,floor){
     cushion(g,{label:'CASH OUT',a:'cashout',color:0xd9a51c,x:0.76,y:0.875,z:0.0,w:0.32,d:0.26,face:'z',fn:()=>clickDom('[data-a="cashout"]'),hover:'Take your winnings'}),
     cushion(g,{label:()=>'MINES '+info.mines,a:'count',color:0x4b4fc4,x:0.76,y:0.875,z:0.34,w:0.32,d:0.26,face:'z',fn:()=>clickDom('[data-a="count"]'),hover:'Change how many mines'})];
   const cntTex=pills[2].mat.map;
-  ref.targets=kiosk(g,-1.32,0,1.0,1.11,true).concat(pills.map(p=>p.b),tiles.map(t=>t.b));
+  ref.targets=kiosk(g,-1.32,0,1.3,1.11,true).concat(pills.map(p=>p.b),tiles.map(t=>t.b));
   dimPills(ref,pills);
   neonSign('MINES',{font:'800 80px '+UI,color:'#c9b8ff',glow:'#7d5cff',board:true,w:512,h:128,spacing:'8px'},0,2.4,-0.62,0,1.6,0.4,g);
   regStand(g,boxCollider(px,pz,0,-1.02,1.02,-0.65,0.65),px,pz,floor,'mines','Play Mines',ref);
@@ -5276,7 +5280,7 @@ function kenoStand(px,pz,floor){
   box(2.08,0.78,0.06,lamb(0x15121c),0,1.95,-0.64,g); [-0.95,0.95].forEach(x=>cyl(0.04,0.04,1.6,8,M.black,x,0.8,-0.66,g));
   neonSign('KENO',{font:'800 84px '+UI,color:'#fff27a',glow:'#ff3cc8',board:true,w:512,h:128,spacing:'10px'},0,2.6,-0.62,0,1.5,0.38,g);
   ref.show=(picks,drawn)=>{ ref.picks=picks; bs.picks=new Set(picks); bs.drawn=drawn.slice(); nums.forEach((o,i)=>{ const n=i+1, p=picks.has(n), d=drawn.includes(n), hit=p&&d; if(o.st.pick!==p||o.st.drawn!==d||o.st.hit!==hit){ o.st.pick=p; o.st.drawn=d; o.st.hit=hit; o.tex.userData.redraw(); } }); board.userData.redraw(); };
-  ref.targets=pills.map(p=>p.b).concat(nums.map(o=>o.cu.b),kiosk(g,1.45,0,0.95,-1.0,true));
+  ref.targets=pills.map(p=>p.b).concat(nums.map(o=>o.cu.b),kiosk(g,1.65,0,1.25,-1.0,true));
   regStand(g,boxCollider(px,pz,0,-1.18,1.18,-0.7,0.7),px,pz,floor,'keno','Play Keno',ref);
 }
 function penguinModel(){
@@ -5337,7 +5341,7 @@ function penguinStand(px,pz,floor){
   dimPills(ref,pills);
   cyl(0.05,0.07,0.75,8,lamb(0x1a1920),0,0.4,2.3,g);
   neonSign('PENGUIN CROSS',{font:'800 60px '+UI,color:'#c6f8ff',glow:'#30e0ff',board:true,w:640,h:128,spacing:'4px'},0,1.9,fz-0.35,0,2.0,0.4,g);
-  ref.targets=pills.map(p=>p.b).concat(kiosk(g,1.15,0,2.55,-1.25,true));
+  ref.targets=pills.map(p=>p.b).concat(kiosk(g,1.25,0,2.85,-1.25,true));
   const col=boxCollider(px,pz,0,-1.05,1.05,-2.55,2.42); col.off=true; floorStands.push({g,col,floor}); ref.g=g;
   stations.push({type:'penguin',label:'Play Penguin Cross',x:px,z:pz+2.95,tx:px,tz:pz,ref,onFloor:floor});
 }
@@ -5383,7 +5387,7 @@ function dragonStand(px,pz,floor){
     cushion(g,{label:'CASH OUT',a:'cashout',color:0xf0a31a,x:0.66,y:0.87,z:0.3,w:0.4,d:0.24,face:'z',fn:()=>clickDom('[data-a="cashout"]'),hover:'Take your winnings'})];
   dimPills(ref,pills);
   neonSign('DRAGON TOWER',{font:'800 60px '+UI,color:'#ffd27a',glow:'#ff3a2a',board:true,w:640,h:128,spacing:'4px'},0,0.62,0.57,0,1.4,0.28,g);
-  ref.targets=pills.map(p=>p.b).concat(tiles.map(t=>t.b),kiosk(g,1.3,0,0.95,-1.0,true));
+  ref.targets=pills.map(p=>p.b).concat(tiles.map(t=>t.b),kiosk(g,1.4,0,1.15,-1.0,true));
   regStand(g,boxCollider(px,pz,0,-0.92,0.92,-0.6,0.6),px,pz,floor,'dragon','Play Dragon Tower',ref);
 }
 function pokerStand(px,pz,floor){
@@ -5403,7 +5407,7 @@ function pokerStand(px,pz,floor){
   ref.show=s=>{ st.hand=s.hand; st.hold=s.hold.slice(); st.phase=s.phase; st.result=s.result;
     cards.forEach((cm,i)=>{ const c=s.hand[i]; cm.material.map=cardTex(c||null); cm.material.needsUpdate=true; cm.position.y=0.98+(s.hold[i]&&s.phase==='hold'?0.05:0); });
     holds.forEach(h=>h.mat.map.userData.redraw()); deal.mat.map.userData.redraw(); pay.userData.redraw(); };
-  ref.targets=holds.map(h=>h.b).concat([deal.b],kiosk(g,1.45,0,0.95,-1.0,true));
+  ref.targets=holds.map(h=>h.b).concat([deal.b],kiosk(g,1.65,0,1.25,-1.0,true));
   regStand(g,boxCollider(px,pz,0,-1.15,1.15,-0.72,0.7),px,pz,floor,'poker','Play Video Poker',ref);
 }
 
