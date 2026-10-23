@@ -606,7 +606,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
       <button class="mbtn" id="moveAcctBtn" type="button" hidden>Use my account on another device</button>
       <button class="mbtn" id="micMenuBtn" type="button">Mic: Off</button>
       <button class="mbtn" id="quitBtn" type="button">Quit to title</button>
-      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 24 Oct, dog update</p>
+      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 24 Oct, voice fix</p>
     </div>
     <div class="menu-pane" id="menuTasks" hidden>
       <p class="party-status">Do tasks to earn ⭐ points, then spend them at the shop outside. Tasks start over each new run. Press T any time to see them.</p>
@@ -1996,14 +1996,14 @@ function buildPlinko(root,hooks){
 }
 function buildHiLo(root,hooks){
   const H=(hooks&&hooks.table)||{};
-  root.innerHTML='<div class="dc"><div class="hl-card" aria-live="polite">?</div><p class="msg" aria-live="polite">Type your bet on the keypad and press Deal. You get a number from 1 to 10: guess if the next one is higher or lower. It is never the same number twice.</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="lower">Lower</button><button class="btn" type="button" data-a="higher">Higher</button><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="deal">Deal</button></div></div></div>';
+  root.innerHTML='<div class="dc"><div class="hl-card" aria-live="polite">?</div><p class="msg" aria-live="polite">Type your bet on the keypad and press Deal. You get a number from 1 to 10: guess if the next one is higher or lower. It is never the same number twice. Changed your mind? Cash out right away to get your bet back.</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="lower">Lower</button><button class="btn" type="button" data-a="higher">Higher</button><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="deal">Deal</button></div></div></div>';
   const q=s=>root.querySelector(s), btn=k=>q('[data-a="'+k+'"]'), say=t=>{ q('.msg').textContent=t; };
   chipRack(q('[data-chips]'),true);
   let bet=0,pot=0,card=null,steps=0,wait=false;
   const draw=()=>({v:1+randInt(10)});
   const odds=(v,dir)=>{ const n=dir==='higher'?10-v:v-1; return n>0?Math.floor(0.97*9/n*100)/100:0; };
   const nm=c=>String(c.v);
-  function sync(){ const play=bet>0&&!wait&&card; btn('deal').disabled=bet>0||wait; btn('higher').disabled=!play||card.v===10; btn('lower').disabled=!play||card.v===1; btn('cashout').disabled=!play||steps<1; }
+  function sync(){ const play=bet>0&&!wait&&card; btn('deal').disabled=bet>0||wait; btn('higher').disabled=!play||card.v===10; btn('lower').disabled=!play||card.v===1; btn('cashout').disabled=!play; btn('cashout').textContent=steps<1?'Take bet back':'Cash out'; }
   function show(){ q('.hl-card').textContent=card?nm(card):'?'; sync(); if(H.show) H.show(card,{bet,pot,steps,hi:card&&bet?odds(card.v,'higher'):0,lo:card&&bet?odds(card.v,'lower'):0}); }
   btn('deal').addEventListener('click',()=>{
     ensureAudio(); if(bet) return; const b=chipAmount(); if(b<=0){ say('No cash left. Walk out the EXIT to start over.'); return; }
@@ -2018,7 +2018,7 @@ function buildHiLo(root,hooks){
     else { const lost=bet; bet=0; pot=0; steps=0; say(nm(nx)+'. Wrong guess, you lose '+money(lost)+'.'); sfx.lose(); show(); reportRound({game:'hilo',net:-lost}); afterRound(); }
   }
   btn('higher').addEventListener('click',()=>guess('higher')); btn('lower').addEventListener('click',()=>guess('lower'));
-  btn('cashout').addEventListener('click',()=>{ if(!bet||steps<1||wait) return; const won=pot, net=pot-bet; give(won); bet=0; pot=0; steps=0; card=null; say('You cashed out '+money(won)+'!'); sfx.fanfare(); show(); reportRound({game:'hilo',net}); afterRound(); });
+  btn('cashout').addEventListener('click',()=>{ if(!bet||wait) return; if(steps<1){ give(bet); say('You took your bet back: '+money(bet)+'.'); bet=0; pot=0; card=null; show(); return; } const won=pot, net=pot-bet; give(won); bet=0; pot=0; steps=0; card=null; say('You cashed out '+money(won)+'!'); sfx.fanfare(); show(); reportRound({game:'hilo',net}); afterRound(); });
   show();
   return {busy:()=>bet>0, leave(){ if(!bet||wait) return; if(steps>=1) btn('cashout').click(); else { give(bet); bet=0; pot=0; card=null; say('You walked away, so your bet came back.'); show(); } }, destroy(){ if(bet&&!steps){ give(bet); bet=0; } }};
 }
@@ -2027,12 +2027,12 @@ function buildCrash(root,hooks){
   root.innerHTML='<div class="dc"><p class="msg" aria-live="polite">Type your bet on the keypad and press Launch. Cash out before the rocket crashes!</p><div class="rack"><div data-chips></div><div class="actions"><button class="btn" type="button" data-a="cashout">Cash out</button><button class="spin" type="button" data-a="launch">Launch</button></div></div></div>';
   const q=s=>root.querySelector(s), btn=k=>q('[data-a="'+k+'"]'), say=t=>{ q('.msg').textContent=t; };
   chipRack(q('[data-chips]'),true);
-  let bet=0, flying=false, t0=0, crashAt=1, cur=1, iv=null;
+  let bet=0, flying=false, t0=0, crashAt=1, cur=1, iv=null, endT=0;
   const mAt=ms=>Math.floor(Math.exp(ms/1000*0.11)*100)/100;
   function sync(){ btn('launch').disabled=flying; btn('cashout').disabled=!flying; }
-  function stop(){ flying=false; if(iv){ clearInterval(iv); iv=null; } sync(); }
+  function stop(){ flying=false; endT=performance.now(); if(iv){ clearInterval(iv); iv=null; } sync(); }
   btn('launch').addEventListener('click',()=>{
-    ensureAudio(); if(flying) return; const b=chipAmount(); if(b<=0){ say('No cash left. Walk out the EXIT to start over.'); return; }
+    ensureAudio(); if(flying||performance.now()-endT<900) return; const b=chipAmount(); if(b<=0){ say('No cash left. Walk out the EXIT to start over.'); return; }
     if(!take(b)) return; bet=b; const u=(randInt(1000000)+0.5)/1000000; crashAt=Math.max(1,Math.floor(0.97/(1-u)*100)/100);
     flying=true; t0=performance.now(); cur=1; sync(); say('Lift off with '+money(bet)+'!'); tone(220,0,0.4,0.05,'sawtooth');
     iv=setInterval(()=>{
@@ -2479,7 +2479,10 @@ async function joinParty(raw){
    Each player sends one audio stream made with WebAudio: the mic goes through a gain node, so turning
    the mic off/on never has to restart a call. Calls go between every pair of party members. */
 const voice={want:false,opening:false,on:false,stream:null,src:null,gain:null,dest:null,an:null,calls:new Map(),audios:new Map(),tried:{}};
-function voiceDest(){ ensureAudio(); if(!ac) return null; if(!voice.dest){ voice.dest=ac.createMediaStreamDestination(); voice.gain=ac.createGain(); voice.gain.gain.value=0; voice.gain.connect(voice.dest); voice.an=ac.createAnalyser(); voice.an.fftSize=256; voice.gain.connect(voice.an); } return voice.dest; }
+let vac=null;
+function voiceCtx(){ if(!vac){ try{ vac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ vac=null; } } if(vac&&vac.state==='suspended') vac.resume().catch(()=>{}); return vac; }
+document.addEventListener('pointerdown',()=>{ if(vac&&vac.state==='suspended') vac.resume().catch(()=>{}); },true);
+function voiceDest(){ const c=voiceCtx(); if(!c) return null; if(!voice.dest){ voice.dest=c.createMediaStreamDestination(); voice.gain=c.createGain(); voice.gain.gain.value=0; voice.gain.connect(voice.dest); voice.an=c.createAnalyser(); voice.an.fftSize=256; voice.gain.connect(voice.an); } return voice.dest; }
 // The mic only really opens while a friend is in your party. Keeping a mic open makes many headsets
 // (Bluetooth ones especially) switch into "phone call" mode, which hisses all the time.
 function micFriends(){ return !!(party.peer&&party.code&&party.peer.id&&Object.values(party.members).some(m=>m.id&&m.id!==party.peer.id&&m.uid!==party.uid)); }
@@ -2489,8 +2492,8 @@ async function openMic(){
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw {name:'NoMic'};
     const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     if(!voice.want||!micFriends()){ st.getTracks().forEach(t=>t.stop()); return; }
-    if(!voiceDest()) throw {name:'NoAudio'};
-    voice.stream=st; voice.src=ac.createMediaStreamSource(st); voice.src.connect(voice.gain); voice.gain.gain.value=1; voice.on=true;
+    if(!voiceDest()){ st.getTracks().forEach(t=>t.stop()); throw {name:'NoAudio'}; }
+    voice.stream=st; voice.src=vac.createMediaStreamSource(st); voice.src.connect(voice.gain); voice.gain.gain.value=1; voice.on=true;
     toast('Mic on! Your party can hear you.','win');
   }catch(e){ voice.on=false; voice.want=false; micError(e); }
   finally{ voice.opening=false; renderMic(); }
@@ -2505,6 +2508,8 @@ function micError(e){
   if(inClaude()||framed){ toast('The Claude link is not allowed to use your mic. Voice chat works on the game website: open Menu, then Party, then the green website buttons.','bad'); if($('partyWeb')){ $('partyWeb').hidden=false; partyWebLinks(); } }
   else if(e&&e.name==='NotAllowedError') toast('Your browser blocked the mic. Click the lock or mic icon at the left of the address bar, set Microphone to Allow, reload the page, then press the mic button again.','bad');
   else if(e&&(e.name==='NotFoundError'||e.name==='NoMic')) toast('No microphone was found. Plug one in and try again.','bad');
+  else if(e&&e.name==='NoAudio') toast('Your browser could not start voice chat. Try reloading the page, or use Chrome or Edge.','bad');
+  else if(e&&e.name==='NotReadableError') toast('Another app is using your mic (like Discord or Zoom). Close it and press the mic button again.','bad');
   else toast('The mic could not start ('+((e&&e.name)||'error')+'). Close other apps using the mic and try again.','bad');
 }
 function micKeep(){ if(voice.want&&micFriends()){ if(!voice.on) openMic(); } else if(voice.on) closeMic(); }
@@ -3490,7 +3495,7 @@ const GAMES={
   elevator:{title:'Elevator',build:buildElevator}
 };
 let mode='start', current=null;
-const BUILD_ID='2026-10-24-dog';
+const BUILD_ID='2026-10-24-voice';
 (function autoUpdate(){
   if(!/github\.io$/.test(location.hostname)||!window.fetch) return;
   let tries=0; try{ tries=+(sessionStorage.getItem('cwfUpd')||0); }catch(_){}
@@ -4927,6 +4932,7 @@ function pressTarget(hit){
   }
   setTimeout(()=>{ if(obj.userData.onClick) obj.userData.onClick(data); },110);
 }
+let crashQuickT=0;
 function quickSpin(){
   if(!tableMount) return; const t=tableMount.st.type, ref=tableMount.st.ref;
   if(t==='roulette') ref.play.userData.onClick();
@@ -4942,7 +4948,7 @@ function quickSpin(){
   else if(t==='poker') clickDom('[data-a="deal"]');
   else if(t==='plinko') clickDom('[data-a="drop"]');
   else if(t==='hilo') clickDom('[data-a="deal"]');
-  else if(t==='crash'){ if(!clickDom('[data-a="cashout"]')) clickDom('[data-a="launch"]'); }
+  else if(t==='crash'){ if(clickDom('[data-a="cashout"]')) crashQuickT=performance.now(); else if(performance.now()-crashQuickT>1600) clickDom('[data-a="launch"]'); }
   else if(t==='mines') clickDom('[data-a="start"]');
 }
 function seatTick(){
@@ -5603,7 +5609,7 @@ function hiloStand(px,pz,floor){
   const pills=[
     cushion(g,{label:'LOWER',a:'lower',color:0xd42a2a,x:-0.56,y:0.875,z:0.32,w:0.34,d:0.28,face:'z',fn:()=>clickDom('[data-a="lower"]'),hover:'Next number is lower'}),
     cushion(g,{label:'HIGHER',a:'higher',color:0x34b84a,x:-0.18,y:0.875,z:0.32,w:0.34,d:0.28,face:'z',fn:()=>clickDom('[data-a="higher"]'),hover:'Next number is higher'}),
-    cushion(g,{label:'CASH OUT',a:'cashout',color:0xd9a51c,x:0.22,y:0.875,z:0.32,w:0.38,d:0.28,face:'z',fn:()=>clickDom('[data-a="cashout"]'),hover:'Take the pot'}),
+    cushion(g,{label:'CASH OUT',a:'cashout',color:0xd9a51c,x:0.22,y:0.875,z:0.32,w:0.38,d:0.28,face:'z',fn:()=>clickDom('[data-a="cashout"]'),hover:'Take the pot (or your bet back)'}),
     cushion(g,{label:'DEAL',a:'deal',color:0x4b4fc4,x:0.6,y:0.875,z:0.32,w:0.3,d:0.28,face:'z',fn:()=>clickDom('[data-a="deal"]'),hover:'Bet and get your first number'})];
   ref.targets=kiosk(g,1.16,0,1.3,-1.17,true).concat(pills.map(p=>p.b));
   dimPills(ref,pills);
@@ -6046,7 +6052,7 @@ document.addEventListener('keydown',e=>{
   if(e.target&&(e.target.tagName==='BUTTON'&&e.code==='Space')) return;
   keys.add(e.code);
   if(e.code==='KeyE'||e.code==='Enter'){ e.preventDefault(); if(hoverHit&&hoverHit.object.userData.hold){ if(!e.repeat) startHold(); } else if(!e.repeat){ if(hoverHit) pressTarget(hoverHit); else if(near) useStation(near); } }
-  if(e.code==='Space'&&tableMount){ e.preventDefault(); quickSpin(); }
+  if(e.code==='Space'&&tableMount){ e.preventDefault(); if(!e.repeat) quickSpin(); }
   if(e.code==='KeyT'&&!e.repeat){ pendingPane='tasks'; if(document.pointerLockElement) document.exitPointerLock(); else openMenuNow(); return; }
   if(e.code==='KeyG'&&!e.repeat){ dropHeld(); return; }
   if(e.code==='KeyM'&&!e.repeat){ setMic(!voice.want); return; }
