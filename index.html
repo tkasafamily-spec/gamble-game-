@@ -2208,10 +2208,10 @@ function netErr(e){ const t=e&&e.type; if(t==='browser-incompatible') return WEB
 const party={peer:null,code:null,host:false,conns:new Map(),hostConn:null,members:{},iv:null,avatars:new Map(),guest:null,uid:null,pr:0,base:1000,applied:0,led:{},solo:null,soloKey:null,joinedAt:0,board:null};
 function fmtK(n){ const a=Math.abs(n), sg=n<0?'-':''; if(a>=1e9) return sg+'$'+(a/1e9).toFixed(a>=1e10?0:1)+'B'; if(a>=1e6) return sg+'$'+(a/1e6).toFixed(a>=1e7?0:1)+'M'; if(a>=1e3) return sg+'$'+(a/1e3).toFixed(a>=1e4?0:1)+'K'; return sg+'$'+Math.round(a); }
 function myName(){ return playerName()||party.guest||(party.guest='Guest'+(10+randInt(90))); }
-function selfState(){ return {id:party.peer?party.peer.id:'me',name:myName(),skin:state.skin||0x2f8cf5,shirt:lookOf().shirt,pants:lookOf().pants,feat:lookOf().feat,hat:lookOf().hat,style:lookOf().style,money:state.money,uid:party.uid||'',net:party.uid?myNet():0,pr:party.pr||0,ph:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?2:myPh(),fl:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?cut.next:(state.floor||0),dl:Math.round((state.dayLeft||0)*10)/10,led:party.uid?ledOut():{},gm:myGame(),floor:loc==='casino'?(state.floor||0):loc==='lobby'?-1:-2,x:Math.round(P.x*100)/100,z:Math.round(P.z*100)/100,yaw:Math.round(P.yaw*100)/100}; }
+function selfState(){ return {id:party.peer?party.peer.id:'me',name:myName(),skin:state.skin||0x2f8cf5,shirt:lookOf().shirt,pants:lookOf().pants,feat:lookOf().feat,hat:lookOf().hat,style:lookOf().style,money:state.money,uid:party.uid||'',net:party.uid?myNet():0,pr:party.pr||0,ph:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?2:myPh(),fl:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?cut.next:(state.floor||0),dl:Math.round((state.dayLeft||0)*10)/10,led:party.uid?ledOut():{},gm:myGame(),hd:heldItem||'',floor:loc==='casino'?(state.floor||0):loc==='lobby'?-1:-2,x:Math.round(P.x*100)/100,z:Math.round(P.z*100)/100,yaw:Math.round(P.yaw*100)/100}; }
 function cleanMember(m){
   if(!m||typeof m!=='object') return null;
-  return {id:String(m.id||'').slice(0,80),name:String(m.name||'Player').slice(0,16),skin:Number.isInteger(m.skin)?(m.skin&0xffffff):0xb5e04a,shirt:Number.isInteger(m.shirt)?(m.shirt&0xffffff):null,pants:Number.isInteger(m.pants)?(m.pants&0xffffff):null,feat:Number.isInteger(m.feat)?clamp(m.feat,-1,3):null,hat:HAT_KINDS.includes(m.hat)?m.hat:'none',style:STYLE_KINDS.includes(m.style)?m.style:'none',money:Number.isFinite(m.money)?m.money:0,uid:typeof m.uid==='string'?m.uid.replace(/[^a-z0-9]/g,'').slice(0,16):'',net:Number.isFinite(m.net)?clamp(Math.round(m.net),-1e15,1e15):0,pr:Number.isInteger(m.pr)?clamp(m.pr,0,1e6):0,ph:m.ph===1||m.ph===2?m.ph:0,fl:Number.isInteger(m.fl)?clamp(m.fl,0,FLOORS.length-1):0,dl:Number.isFinite(m.dl)?clamp(m.dl,0,600):0,led:cleanLed(m.led),gm:cleanGame(m.gm),floor:Number.isInteger(m.floor)?clamp(m.floor,-2,9):0,x:Number.isFinite(m.x)?clamp(m.x,-40,40):0,z:Number.isFinite(m.z)?clamp(m.z,-RD/2,70):0,yaw:Number.isFinite(m.yaw)?m.yaw:0};
+  return {id:String(m.id||'').slice(0,80),name:String(m.name||'Player').slice(0,16),skin:Number.isInteger(m.skin)?(m.skin&0xffffff):0xb5e04a,shirt:Number.isInteger(m.shirt)?(m.shirt&0xffffff):null,pants:Number.isInteger(m.pants)?(m.pants&0xffffff):null,feat:Number.isInteger(m.feat)?clamp(m.feat,-1,3):null,hat:HAT_KINDS.includes(m.hat)?m.hat:'none',style:STYLE_KINDS.includes(m.style)?m.style:'none',money:Number.isFinite(m.money)?m.money:0,uid:typeof m.uid==='string'?m.uid.replace(/[^a-z0-9]/g,'').slice(0,16):'',net:Number.isFinite(m.net)?clamp(Math.round(m.net),-1e15,1e15):0,pr:Number.isInteger(m.pr)?clamp(m.pr,0,1e6):0,ph:m.ph===1||m.ph===2?m.ph:0,fl:Number.isInteger(m.fl)?clamp(m.fl,0,FLOORS.length-1):0,dl:Number.isFinite(m.dl)?clamp(m.dl,0,600):0,led:cleanLed(m.led),gm:cleanGame(m.gm),hd:(typeof m.hd==='string'&&ITEMS.some(i=>i.k===m.hd))?m.hd:'',floor:Number.isInteger(m.floor)?clamp(m.floor,-2,9):0,x:Number.isFinite(m.x)?clamp(m.x,-40,40):0,z:Number.isFinite(m.z)?clamp(m.z,-RD/2,70):0,yaw:Number.isFinite(m.yaw)?m.yaw:0};
 }
 let crashLive=null, hiloLive=null, plinkoLive=[], plinkoSeq=0;
 function myGame(){
@@ -2339,11 +2339,7 @@ function boardRows(list){
     const nt=document.createElement('span'); nt.className='sb-net '+(m.net>0?'up':m.net<0?'down':'even'); nt.textContent=m.net>0?'made '+money(m.net):m.net<0?'lost '+money(-m.net):'even';
     li.append(rk,dot,nm,nt); ol.appendChild(li); });
 }
-function showBoard(o,ms){
-  sbFixed=true; $('sbTitle').textContent=o.title; $('sbSub').textContent=o.sub||''; boardRows(o.list);
-  $('sbHint').textContent=touchMode?'Open Menu, then Party, to see the stats any time':'Hold Tab to see the stats any time';
-  $('scoreBoard').hidden=false; clearTimeout(sbTimer); sbTimer=setTimeout(()=>{ sbFixed=false; if(!sbHeld) $('scoreBoard').hidden=true; },ms||6000);
-}
+function showBoard(o,ms){ const top=o.list&&o.list[0]; toast(o.title+(top?'  Top player: '+top.name+' '+(top.net>=0?'made ':'lost ')+money(Math.abs(top.net)):'')+'  (hold Tab for stats)','win'); }
 function liveBoard(){
   if(!party.code||!state) return;
   $('sbTitle').textContent='PARTY STATS'; $('sbSub').textContent='Team cash '+money(state.money)+' · started with '+money(partyStart())+(state.inRun?' · quota '+money(dayQuota()):'');
@@ -2518,7 +2514,7 @@ function voiceTick(){
   else if($('micBtn').classList.contains('talk')) $('micBtn').classList.remove('talk');
   if(!voice.audios.size) return;
   const myF=myFloorCode();
-  voice.audios.forEach((a,id)=>{ const m=Object.values(party.members).find(x=>x.id===id); let v=0.15; if(m&&m.floor===myF&&myF!==-2){ const d=Math.hypot(m.x-P.x,m.z-P.z); v=clamp(1-(d-2)/16,0.15,1); } a.volume=v; });
+  voice.audios.forEach((a,id)=>{ const m=Object.values(party.members).find(x=>x.id===id); let v=0.15; if(m&&myF!==-2&&(m.floor===-1||m.floor===(state.floor||0))){ const d=Math.hypot(m.x-P.x,m.z-P.z); v=clamp(1-(d-2)/16,0.15,1); } a.volume=v; });
 }
 function leaveParty(silent){
   voiceHangAll(); closeMic(); renderMic();
@@ -2541,7 +2537,7 @@ function nameTagTex(name){ return canvasTex(320,72,(g,w,h)=>{ g.clearRect(0,0,w,
 function partyTick(dt){
   const myId=party.peer&&party.peer.id, fl=loc==='casino'?(state.floor||0):loc==='lobby'?-1:-2, seen=new Set();
   if(party.code) Object.values(party.members).forEach(m=>{
-    if(!m.id||m.id===myId||m.floor!==fl||fl===-2) return; seen.add(m.id);
+    if(!m.id||m.id===myId||fl===-2||m.floor===-2||!(m.floor===-1||m.floor===(state.floor||0))) return; seen.add(m.id);
     let a=party.avatars.get(m.id); const lk=[m.skin,m.shirt,m.pants,m.feat,m.hat,m.style].join();
     if(a&&a.lk!==lk){ scene.remove(a.g); party.avatars.delete(m.id); a=null; }
     if(!a){
@@ -2558,6 +2554,8 @@ function partyTick(dt){
     if(moving){ ud.phase+=dt*9; const sn=Math.sin(ud.phase); ud.legs[0].rotation.x=sn*0.5; ud.legs[1].rotation.x=-sn*0.5; ud.arms[0].rotation.x=-sn*0.4; ud.arms[1].rotation.x=sn*0.4; }
     else { ud.legs.forEach(l=>{ l.rotation.x*=0.85; }); ud.arms.forEach(l=>{ l.rotation.x*=0.85; }); }
     try{ friendGame(m,a); }catch(e){}
+    if(a.hd!==m.hd){ a.hd=m.hd; if(a.hg){ a.g.remove(a.hg); a.hg=null; } if(m.hd){ const hg=new THREE.Group(); hg.position.set(-0.5,1.02,0.24); hg.scale.setScalar(1.3); makeItem(m.hd,hg); a.g.add(hg); a.hg=hg; } }
+    if(a.hg) a.hg.rotation.y=Math.sin(performance.now()*0.002)*0.3;
   });
   party.avatars.forEach((a,id)=>{ if(!seen.has(id)){ scene.remove(a.g); party.avatars.delete(id); } });
 }
@@ -2633,7 +2631,7 @@ function dayTick(dt){
   if(sec!==lastSec){ lastSec=sec; renderDay(); if(sec<=10&&sec>0) tone(sec<=3?1250:900,0,0.08,0.05,'square'); if(sec%5===0) save(); if(sec===60) toast('1 minute left in the day!','bad'); }
   if(state.dayLeft<=0&&world) endOfDay(false);
 }
-function showBig(t,sub){ $('bigMsgT').textContent=t||''; $('bigMsgS').textContent=sub||''; $('bigMsg').hidden=false; }
+function showBig(t,sub){ const m=(t||'')+(sub?'  '+sub:''); if(m.trim()) toast(m,/DONE|COMPLETE|WON|BEAT|GOING UP|DAY \d/.test(t||'')?'win':/UP!|CHOMP|LOOK DOWN/.test(t||'')?'bad':''); }
 function hideBig(){ $('bigMsg').hidden=true; }
 function teleport(x,z,yaw){ setLocLights(); P.x=x; P.z=z; P.yaw=yaw||0; P.pitch=-0.04; P.vx=P.vz=0; if(camera){ camera.position.set(x,EYE,z); camera.rotation.set(P.pitch,P.yaw,0); } }
 function flash(color,ms){ const f=$('fade'); f.style.background=color; f.classList.add('on'); setTimeout(()=>{ f.classList.remove('on'); setTimeout(()=>{ f.style.background=''; },420); },ms||120); }
@@ -2714,7 +2712,7 @@ function arriveLobbyBetween(n,stay){
   loc='lobby'; if(!stay) teleport(LSP.x,LSP.z,0); if(mode==='cut') mode='walk'; syncHud(); lastNearKey='~';
   renderCash(true); renderDay(); $('fade').classList.remove('on'); if(world) syncShopItems();
   if(partyOn()&&party.board){ showBoard({title:'DAY '+n+' DONE! +'+(state.lastEarned||3)+' ⭐',sub:'Team cash '+money(state.money)+'. Shop with your points, then walk through the doors for Floor '+(n+1)+'.',list:party.board.list},7000); party.board=null; return; }
-  showBig('DAY '+n+' DONE! +'+(state.lastEarned||3)+' ⭐','You have '+state.tickets+' points. Shop in the lobby, then walk through the doors for Floor '+(n+1)+'.'); setTimeout(()=>{ if(loc==='lobby'&&!cut) hideBig(); },4200);
+  showBig('DAY '+n+' DONE! +'+(state.lastEarned||3)+' ⭐','You have '+state.tickets+' points. Shop in the container outside, then walk back in for Floor '+(n+1)+'.'); setTimeout(()=>{ if(loc==='lobby'&&!cut) hideBig(); },4200);
 }
 function arriveFloor(i,keepTime){
   cut=null; setFloor(i); if(!keepTime){ state.dayLeft=DAY_SECS[i]; state.quotaMet=false; } loc='casino'; teleport(-5.6,RD/2-2.4,0);
