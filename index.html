@@ -1502,6 +1502,7 @@ function buildBlackjack(root,hooks){
   return {
     bet:()=>bet,
     busy:()=>phase!=='bet',
+    leave(){ if(phase==='play') stand(); },
     destroy(){ alive=false; if(bet&&phase==='bet') give(bet); bet=0; if(H.clear) H.clear(); }
   };
 }
@@ -1971,7 +1972,7 @@ function buildHiLo(root,hooks){
   btn('higher').addEventListener('click',()=>guess('higher')); btn('lower').addEventListener('click',()=>guess('lower'));
   btn('cashout').addEventListener('click',()=>{ if(!bet||steps<1||wait) return; const won=pot, net=pot-bet; give(won); bet=0; pot=0; steps=0; card=null; say('You cashed out '+money(won)+'!'); sfx.fanfare(); show(); reportRound({game:'hilo',net}); afterRound(); });
   show();
-  return {busy:()=>bet>0, destroy(){}};
+  return {busy:()=>bet>0, leave(){ if(!bet||wait) return; if(steps>=1) btn('cashout').click(); else { give(bet); bet=0; pot=0; card=null; say('You walked away, so your bet came back.'); show(); } }, destroy(){ if(bet&&!steps){ give(bet); bet=0; } }};
 }
 function buildCrash(root,hooks){
   const H=(hooks&&hooks.table)||{};
@@ -1998,7 +1999,7 @@ function buildCrash(root,hooks){
     if(H.frame) H.frame(m,'cashed',crashAt); say('Cashed out at '+m.toFixed(2)+'×: '+money(won)+'! It would have crashed at '+crashAt.toFixed(2)+'×.'); sfx.win(); reportRound({game:'crash',net}); afterRound();
   });
   sync(); if(H.frame) H.frame(1,'idle');
-  return {busy:()=>flying, destroy(){ if(flying){ const won=Math.floor(bet*cur); stop(); give(won); reportRound({game:'crash',net:won-bet}); bet=0; } }};
+  return {busy:()=>flying, leave(){ if(flying) btn('cashout').click(); }, destroy(){ if(flying){ const won=Math.floor(bet*cur); stop(); give(won); reportRound({game:'crash',net:won-bet}); bet=0; } }};
 }
 const MINE_COUNTS=[1,3,5,10];
 function minesMult(k,n){ let m=0.97; for(let i=0;i<k;i++) m*=(25-i)/(25-n-i); return Math.floor(m*100)/100; }
@@ -2030,7 +2031,7 @@ function buildMines(root,hooks){
   }));
   btn('cashout').addEventListener('click',()=>{ if(!bet||picks<1) return; const won=Math.floor(bet*minesMult(picks,mines)), net=won-bet; give(won); bet=0; bombs.forEach(j=>{ if(!rev[j]) rev[j]=2; }); say('Cashed out '+money(won)+'!'); sfx.win(); sync(); reportRound({game:'mines',net}); afterRound(); });
   sync();
-  return {busy:()=>bet>0, destroy(){}};
+  return {busy:()=>bet>0, leave(){ if(!bet) return; if(picks>=1) btn('cashout').click(); else { give(bet); bet=0; say('You walked away, so your bet came back.'); sync(); } }, destroy(){ if(bet&&!picks){ give(bet); bet=0; } }};
 }
 
 /* =========================================================
@@ -4432,9 +4433,16 @@ function updateMount(){
   let best=null, bd=2.4;
   for(const s of stations){ if(!TABLE_TYPES[s.type]) continue; if(s.onFloor!=null&&s.onFloor!==(state.floor||0)) continue; const d=Math.hypot(s.x-P.x,s.z-P.z); if(d<bd){ bd=d; best=s; } }
   if(tableMount){
-    if(tableMount.st===best) return;
-    if(tableMount.api.busy&&tableMount.api.busy()) return;
+    if(tableMount.st===best){ tableMount.leftAt=0; return; }
     const d=Math.hypot(tableMount.st.x-P.x,tableMount.st.z-P.z);
+    if(tableMount.api.busy&&tableMount.api.busy()){
+      if(!best&&d<=2.9){ tableMount.leftAt=0; return; }
+      const now=performance.now(); if(!tableMount.leftAt) tableMount.leftAt=now;
+      if(!tableMount.leaveTried&&now-tableMount.leftAt>400){ tableMount.leaveTried=true;
+        try{ if(tableMount.api.leave) tableMount.api.leave(); else ['cashout','stand'].some(a=>clickDom('[data-a="'+a+'"]')); }catch(e){}
+        toast('You walked away, so your last game finished up.'); }
+      if(tableMount.api.busy&&tableMount.api.busy()&&now-tableMount.leftAt<5000) return;
+    }
     if(best||d>3.0) unmountTable(); else return;
   }
   if(best) mountTable(best);
@@ -5240,7 +5248,7 @@ function buildPenguin(root,hooks){
   });
   btn('cashout').addEventListener('click',()=>{ if(!bet||step<1||busy) return; const won=Math.floor(bet*pcMult(step)); give(won); reportRound({game:'penguin',net:won-bet}); say('Cashed out '+money(won)+'!'); sfx.win(); bet=0; if(H.home) H.home(); sync(); afterRound(); });
   sync();
-  return {busy:()=>bet>0||busy, destroy(){}};
+  return {busy:()=>bet>0||busy, leave(){ if(!bet||busy) return; if(step>=1) btn('cashout').click(); else { give(bet); bet=0; if(H.home) H.home(); say('You walked away, so your bet came back.'); sync(); } }, destroy(){ if(bet&&!step&&!busy){ give(bet); bet=0; } }};
 }
 const DT_ROWS=8, DT_COLS=3, dtMult=k=>Math.floor(0.97*Math.pow(1.5,k)*100)/100;
 function buildDragon(root,hooks){
@@ -5262,7 +5270,7 @@ function buildDragon(root,hooks){
     say('Safe! Cash out '+money(Math.floor(bet*dtMult(row)))+' or climb for '+dtMult(row+1)+'×.'); sync(); }));
   btn('cashout').addEventListener('click',()=>{ if(!bet||row<1) return; const won=Math.floor(bet*dtMult(row)), net=won-bet; give(won); bet=0; for(let rr=0;rr<DT_ROWS;rr++) if(!rev[rr+'-'+dragons[rr]]) rev[rr+'-'+dragons[rr]]='dragon'; say('Cashed out '+money(won)+'!'); sfx.win(); sync(); reportRound({game:'dragon',net}); afterRound(); });
   sync();
-  return {busy:()=>bet>0, destroy(){}};
+  return {busy:()=>bet>0, leave(){ if(!bet) return; if(row>=1) btn('cashout').click(); else { give(bet); bet=0; say('You walked away, so your bet came back.'); sync(); } }, destroy(){ if(bet&&!row){ give(bet); bet=0; } }};
 }
 const VP_PAY=[['Royal Flush',800],['Straight Flush',50],['Four of a Kind',25],['Full House',9],['Flush',6],['Straight',4],['Three of a Kind',3],['Two Pair',2],['Jacks or Better',1]];
 function vpEval(cards){
@@ -5292,7 +5300,7 @@ function buildPoker(root,hooks){
     bet=0; sync(); afterRound();
   });
   sync();
-  return {busy:()=>phase==='hold', destroy(){ if(phase==='hold'&&bet){ give(bet); } }};
+  return {busy:()=>phase==='hold', leave(){ if(phase==='hold') btn('deal').click(); }, destroy(){ if(phase==='hold'&&bet){ give(bet); } }};
 }
 
 /* ---- 3D stands for the new games ---- */
