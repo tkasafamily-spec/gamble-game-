@@ -414,6 +414,13 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 .party-code small{color:#d9d2e6;font-size:13px;max-width:36ch}
 .party-join input{flex:1;min-width:0;min-height:46px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.45);color:#fff;font:900 22px var(--font-ui);letter-spacing:.2em;text-transform:uppercase}
 .party-join .btn{min-height:46px;color:#fff;border-color:#fff}
+.party-web{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:rgba(62,224,122,.1);box-shadow:inset 0 0 0 2px rgba(62,224,122,.55)}
+.party-web[hidden]{display:none}
+.party-web a.mbtn{display:flex;align-items:center;justify-content:center;text-decoration:none}
+.party-link{display:flex;gap:8px}
+.party-link[hidden]{display:none}
+.party-link input{flex:1;min-width:0;min-height:42px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.45);color:#fff;font:700 13px var(--font-ui)}
+.party-link .btn{min-height:42px;color:#fff;border-color:#fff}
 .party-list{list-style:none;padding:0;margin:0;color:#fff;display:flex;flex-direction:column;gap:4px;font-weight:700}
 .party-status{color:#fff;min-height:1.2em;text-align:center;margin:0;font-weight:700}
 #xferIn{text-transform:uppercase;letter-spacing:.2em;font-weight:900}
@@ -597,9 +604,15 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
         <p class="party-status">In a party everyone shares ONE pot of money. It starts at $1,000 and you make the quota together. Hold Tab to see who made and who lost money.</p>
         <button class="mbtn go" id="partyCreate" type="button">Create party</button>
         <div class="mrow party-join"><input id="partyCodeIn" maxlength="6" placeholder="CODE" aria-label="Party code" autocomplete="off" spellcheck="false"><button class="btn" id="partyJoin" type="button">Join party</button></div>
+        <div class="party-web" id="partyWeb" hidden>
+          <p class="party-status">Friends not signed in to Claude? Play parties on the game website instead. No sign-in needed!</p>
+          <a class="mbtn go" id="partyWebCreate" href="https://tkasafamily-spec.github.io/gamble-game-/" target="_blank" rel="noopener">Make a party on the website</a>
+          <a class="mbtn" id="partyWebJoin" href="https://tkasafamily-spec.github.io/gamble-game-/" target="_blank" rel="noopener">Join the code above on the website</a>
+        </div>
       </div>
       <div id="partyIn" class="menu-pane" hidden>
-        <div class="party-code"><span>Party code</span><b id="partyCodeShow">-----</b><small>Give this code to your friends. They open the game, press P (or Esc, then Party), type it in and press Join party.</small></div>
+        <div class="party-code"><span>Party code</span><b id="partyCodeShow">-----</b><small>Give this code to your friends: they press P (or Esc, then Party), type it and press Join party. Or send them the invite link below, it joins by itself.</small></div>
+        <div class="party-link" id="partyLinkRow" hidden><input id="partyLinkOut" readonly aria-label="Invite link"><button class="btn" id="partyCopy" type="button">Copy link</button></div>
         <ul class="party-list" id="partyListMenu"></ul>
         <button class="mbtn" id="partyLeave" type="button">Leave party</button>
       </div>
@@ -2184,7 +2197,25 @@ function liveBoard(){
   $('sbTitle').textContent='PARTY STATS'; $('sbSub').textContent='Team cash '+money(state.money)+' · started with '+money(START)+(state.inRun?' · quota '+money(dayQuota()):'');
   $('sbHint').textContent='Let go of Tab to close'; boardRows(partyList()); $('scoreBoard').hidden=false;
 }
-const WEB_MSG="Parties only work on this link when everyone is signed in to Claude. You can still play solo!";
+const WEB_MSG="Parties on this Claude link need everyone signed in to Claude. Use the website buttons below instead: no sign-in needed!";
+const SITE_URL='https://tkasafamily-spec.github.io/gamble-game-/';
+const inClaude=()=>!!window.claude;
+let webCode=null;
+function partyWebLinks(){
+  const box=$('partyWeb'); if(!box) return;
+  box.hidden=!inClaude()||!!party.code;
+  if(!webCode) webCode=makeCode(5);
+  $('partyWebCreate').href=SITE_URL+'?party='+webCode+'&host=1';
+  const jc=($('partyCodeIn').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  $('partyWebJoin').href=SITE_URL+(jc.length>=5?'?party='+jc:'');
+}
+function inviteLink(){ return SITE_URL+'?party='+party.code; }
+const pendingParty=(()=>{ try{ const q=new URLSearchParams(location.search), c=(q.get('party')||'').toUpperCase().replace(/[^A-Z0-9]/g,''); return c.length>=5&&c.length<=6?{code:c,host:q.get('host')==='1'}:null; }catch(_){ return null; } })();
+function runPendingParty(){
+  if(!pendingParty||pendingParty.done) return; pendingParty.done=true;
+  try{ history.replaceState(null,'',location.pathname); }catch(_){}
+  setTimeout(()=>{ if(party.code||party.peer||party.room) return; if(pendingParty.host) createParty(pendingParty.code); else joinParty(pendingParty.code); },500);
+}
 const hasRTC=()=>typeof RTCPeerConnection!=='undefined';
 async function roomApi(){ try{ return window.claude&&window.claude.use?await window.claude.use('room'):null; }catch(_){ return null; } }
 async function roomParty(code,created){
@@ -2197,8 +2228,8 @@ async function roomParty(code,created){
   startPartyLoop(); renderPartyUI(); renderPartyHud();
   setPartyStatus(created?'Party ready! Give your friends the code.':'You joined party '+code+'!'); toast(created?'Party made! Your code is '+code:'You joined party '+code+'!','win');
 }
-function setPartyStatus(t){ const el=$('partyStatus'); if(el) el.textContent=t||''; }
-function renderPartyUI(){ const inP=!!party.code; $('partyOut').hidden=inP; $('partyIn').hidden=!inP; $('partyCodeShow').textContent=party.code||'-----'; $('partyCreate').disabled=(!!party.peer||!!party.room)&&!inP; $('partyJoin').disabled=(!!party.peer||!!party.room)&&!inP; }
+function setPartyStatus(t){ const el=$('partyStatus'); if(el) el.textContent=t||''; if(t===WEB_MSG&&$('partyWeb')){ $('partyWeb').hidden=false; partyWebLinks(); $('partyWeb').hidden=false; } }
+function renderPartyUI(){ const inP=!!party.code; partyWebLinks(); if($('partyLinkRow')){ $('partyLinkRow').hidden=!inP||!!party.room; if(inP) $('partyLinkOut').value=inviteLink(); } $('partyOut').hidden=inP; $('partyIn').hidden=!inP; $('partyCodeShow').textContent=party.code||'-----'; $('partyCreate').disabled=(!!party.peer||!!party.room)&&!inP; $('partyJoin').disabled=(!!party.peer||!!party.room)&&!inP; }
 function partyList(){
   const out=[{name:myName(),net:partyOn()?myNet():0,mine:true,live:true,floor:myFloorCode(),skin:state.skin||0x2f8cf5}];
   Object.values(party.members).forEach(m=>{ if(!m.uid||m.uid===party.uid) return; out.push({name:m.name,net:m.pr===party.pr?m.net:0,live:true,floor:m.floor,skin:m.skin}); });
@@ -2230,13 +2261,14 @@ function startPartyLoop(){
     renderPartyHud(); renderDay(); if(sbHeld) liveBoard();
   },200);
 }
-async function createParty(){
+async function createParty(want){
   if(party.peer||party.room) return;
-  if(!hasRTC()) return roomParty(makeCode(5),true);
+  if(typeof want!=='string') want=null;
+  if(!hasRTC()) return roomParty(want||makeCode(5),true);
   setPartyStatus('Making your party…');
   try{ await loadPeer(); }catch(e){ setPartyStatus("Couldn't load the party system. Check your internet."); return; }
   const open=tries=>{
-    const code=makeCode(5), peer=new Peer(PARTY_PREFIX+code); party.peer=peer; renderPartyUI();
+    const code=(tries===0&&want)?want:makeCode(5), peer=new Peer(PARTY_PREFIX+code); party.peer=peer; renderPartyUI();
     peer.on('open',()=>{ party.code=code; party.host=true; party.members={}; partyBegin(true); startPartyLoop(); renderPartyUI(); renderPartyHud(); setPartyStatus('Party ready! Give your friends the code.'); toast('Party made! Your code is '+code,'win'); });
     peer.on('connection',conn=>{
       conn.on('open',()=>{ if(party.conns.size>=7){ try{ conn.send({t:'full'}); }catch(_){} setTimeout(()=>{ try{ conn.close(); }catch(_){} },400); return; } party.conns.set(conn.peer,conn); });
@@ -2245,8 +2277,9 @@ async function createParty(){
       conn.on('error',()=>{});
     });
     peer.on('error',e=>{
+      if(e.type==='unavailable-id'&&tries===0&&want&&!party.code){ try{ peer.destroy(); }catch(_){} party.peer=null; joinParty(want); return; }
       if(e.type==='unavailable-id'&&tries<4&&!party.code){ try{ peer.destroy(); }catch(_){} party.peer=null; open(tries+1); return; }
-      if(e.type==='browser-incompatible'&&!party.code){ try{ peer.destroy(); }catch(_){} party.peer=null; roomParty(makeCode(5),true); return; }
+      if(e.type==='browser-incompatible'&&!party.code){ try{ peer.destroy(); }catch(_){} party.peer=null; roomParty(want||makeCode(5),true); return; }
       if(!party.code){ try{ peer.destroy(); }catch(_){} party.peer=null; renderPartyUI(); setPartyStatus(netErr(e)); }
     });
     peer.on('disconnected',()=>{ try{ if(!peer.destroyed) peer.reconnect(); }catch(_){} });
@@ -5757,7 +5790,7 @@ function setKeys(){
 }
 function enterCasino(){
   ensureAudio(); startAmbient();
-  $('startScreen').hidden=true; mode='walk';
+  $('startScreen').hidden=true; mode='walk'; runPendingParty();
   if(!touchMode) requestLock();
   syncHud(); $('scene').focus();
 }
@@ -5779,8 +5812,13 @@ $('backBtn').addEventListener('click',()=>menuPane('main'));
 $('backBtn2').addEventListener('click',()=>menuPane('main'));
 $('backBtn3').addEventListener('click',()=>menuPane('main'));
 $('backBtn4').addEventListener('click',()=>menuPane('main'));
-$('partyBtn').addEventListener('click',()=>menuPane('party'));
+$('partyBtn').addEventListener('click',()=>{ menuPane('party'); partyWebLinks(); });
 $('partyCreate').addEventListener('click',()=>createParty());
+$('partyCodeIn').addEventListener('input',partyWebLinks);
+$('partyWebJoin').addEventListener('click',e=>{ const jc=($('partyCodeIn').value||'').replace(/[^A-Za-z0-9]/g,''); if(jc.length<5){ e.preventDefault(); setPartyStatus('Type the party code in the box first, then press this.'); } });
+$('partyWebCreate').addEventListener('click',()=>{ setPartyStatus('Opening the website. Send your friends the code '+webCode+' or the invite link it shows.'); setTimeout(()=>{ webCode=null; partyWebLinks(); },1500); });
+$('partyCopy').addEventListener('click',()=>{ const v=$('partyLinkOut').value; const ok=()=>setPartyStatus('Invite link copied! Send it to your friends.');
+  try{ navigator.clipboard.writeText(v).then(ok,()=>{ $('partyLinkOut').select(); try{ document.execCommand('copy'); ok(); }catch(_){ setPartyStatus('Select the link and copy it.'); } }); }catch(_){ $('partyLinkOut').select(); try{ document.execCommand('copy'); ok(); }catch(__){ setPartyStatus('Select the link and copy it.'); } } });
 $('partyJoin').addEventListener('click',()=>joinParty($('partyCodeIn').value));
 $('partyCodeIn').addEventListener('keydown',e=>{ if(e.key==='Enter') joinParty($('partyCodeIn').value); });
 $('partyLeave').addEventListener('click',()=>leaveParty(false));
@@ -5906,7 +5944,7 @@ async function boot(data){
   if(state.inRun&&!state.between){ loc='casino'; teleport(0,RD/2-2.5,0); } else { loc='lobby'; teleport(LB.x,LB.z+LB.d/2-2,0); }
   renderCash(); renderDay();
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>redraws.forEach(f=>f())).catch(()=>{});
-  $('enterBtn').disabled=false; $('enterBtn').textContent='Enter the casino';
+  $('enterBtn').disabled=false; $('enterBtn').textContent=pendingParty?(pendingParty.host?'Enter and start party '+pendingParty.code:'Enter and join party '+pendingParty.code):'Enter the casino';
   requestAnimationFrame(loop);
   if(isBroke()) toast("You're broke! Walk out the EXIT door to start over with "+money(START)+".",'bad');
 }
