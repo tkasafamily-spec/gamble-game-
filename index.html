@@ -366,7 +366,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 .dayhud .day-timer{font:900 44px/1 var(--font-ui);color:#fff}
 .dayhud.hurry .day-timer{color:#ff5a4a}
 .quota{font:900 24px/1 var(--font-ui);text-shadow:0 2px 0 rgba(0,0,0,.7)}
-.betbadge{display:inline-flex;flex-direction:column;align-self:flex-start;margin-top:8px;padding:6px 12px;border-radius:10px;background:rgba(10,8,14,.82);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18);transform:rotate(-3deg)}.betbadge small{font:800 11px/1 var(--font-ui);letter-spacing:.12em;color:#b8b4c6}.betbadge b{font:900 22px/1.1 var(--font-ui);color:#fff}.betbadge[hidden]{display:none}
+.betbadge{display:inline-flex;flex-direction:column;align-self:flex-start;margin-top:8px;padding:6px 12px;border-radius:10px;background:rgba(10,8,14,.82);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18);transform:rotate(-3deg)}.betbadge small{font:800 11px/1 var(--font-ui);letter-spacing:.12em;color:#b8b4c6}.betbadge b{font:900 22px/1.1 var(--font-ui);color:#fff}.betbadge #betHudVal{font-size:30px;color:#5dff98}.betbadge.over #betHudVal{color:#ff5a5a}.betbadge small+b{margin-bottom:2px}.betbadge b+small{margin-top:4px}.betbadge[hidden]{display:none}
 .quota.no{color:#ff5a4a} .quota.ok{color:var(--money)}
 .bigmsg{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;pointer-events:none;text-align:center;padding:16px}
 .bigmsg b{font:400 clamp(46px,10vw,120px)/1 "Luckiest Guy","Limelight",Georgia,serif;color:#fff;-webkit-text-stroke:7px #000;paint-order:stroke fill;text-shadow:0 8px 0 rgba(0,0,0,.5);animation:bump .6s ease}
@@ -467,7 +467,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
   <span class="cash-label">Cash</span>
   <span class="cash-val" data-cash>$2,500</span>
   <span class="quota" id="quotaLine" hidden></span>
-  <span class="betbadge" id="betHud" hidden><small>TOTAL BET</small><b id="betHudVal">$0</b></span>
+  <span class="betbadge" id="betHud" hidden><small>YOUR BET · TYPE IT ON THE KEYPAD</small><b id="betHudVal">$0</b><small id="betHudTotL" hidden>TOTAL ON THE TABLE</small><b id="betHudTot" hidden>$0</b></span>
   <span class="perks" id="perks" hidden></span>
   <span class="tix" id="tix" hidden>0 tickets</span>
 </div>
@@ -3402,12 +3402,12 @@ function rouletteTable(px,pz,rot){
   ref.stackAt=k=>{ const r=rlCellRect(k); return r?[r.lx,0.917,r.lz]:null; };
   // buttons on a slim ledge on your side
   box(0.36,0.08,2.5,RL_EDGE,0.97,0.82,0.65,g);
-  const play=cushion(g,{label:'PLAY',color:0x86c832,x:0.97,y:0.86,z:-0.3,w:0.32,d:0.5,h:0.09,face:'z',fn:playGo,hover:'Spin the wheel'}).b;
+  const play=cushion(g,{label:'PLAY',color:0x86c832,x:0.97,y:0.86,z:-0.3,w:0.32,d:0.5,h:0.09,fn:playGo,hover:'Spin the wheel'}).b;
   ref.play=play; ref.playLabel=play;
   ref.targets=[ftxt,play].concat(kiosk(g,1.5,0,1.3,3.05,true,0.8),
-    btn3(g,{label:'REBET',color:0xd23c4c,css:'#d23c4c',x:0.97,y:0.86,z:0.22,w:0.32,d:0.34,h:0.075,face:'z',fn:()=>clickDom('[data-a="rebet"]'),hover:'Place your last bets again'}),
-    btn3(g,{label:'UNDO',color:0x6f7fa8,css:'#6f7fa8',x:0.97,y:0.86,z:0.62,w:0.32,d:0.3,h:0.07,face:'z',fn:()=>clickDom('[data-a="undo"]'),hover:'Undo your last chip'}),
-    btn3(g,{label:'CLEAR',color:0x8a8494,css:'#8a8494',x:0.97,y:0.86,z:0.98,w:0.32,d:0.3,h:0.07,face:'z',fn:()=>clickDom('[data-a="clear"]'),hover:'Take all your chips back'}));
+    btn3(g,{label:'REBET',color:0xd23c4c,css:'#d23c4c',x:0.97,y:0.86,z:0.22,w:0.32,d:0.34,h:0.075,fn:()=>clickDom('[data-a="rebet"]'),hover:'Place your last bets again'}),
+    btn3(g,{label:'UNDO',color:0x6f7fa8,css:'#6f7fa8',x:0.97,y:0.86,z:0.62,w:0.32,d:0.3,h:0.07,fn:()=>clickDom('[data-a="undo"]'),hover:'Undo your last chip'}),
+    btn3(g,{label:'CLEAR',color:0x8a8494,css:'#8a8494',x:0.97,y:0.86,z:0.98,w:0.32,d:0.3,h:0.07,fn:()=>clickDom('[data-a="clear"]'),hover:'Take all your chips back'}));
   // sign behind the layout
   const signT=canvasTex(1024,220,(c,w,h)=>{ c.fillStyle='#141216'; rrect(c,4,4,w-8,h-8,20); c.fill(); c.strokeStyle='#3a3640'; c.lineWidth=8; rrect(c,14,14,w-28,h-28,14); c.stroke();
     c.fillStyle='#ece6d8'; c.font='italic 600 70px Georgia, "Times New Roman", serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('Bet on a number, color or range.',w/2,h/2+4); },{text:true});
@@ -3968,7 +3968,15 @@ function kioskPress(key){
   else if(key==='all'){ state.chip='all'; kioskFresh=true; if(tableMount&&tableMount.st.type==='blackjack') clickDom('.bet-spot'); }
   save(); sfx.chip(); redrawKiosk();
 }
-function redrawKiosk(){ if(!tableMount||!tableMount.st.ref) return; const t=(tableMount.st.ref.targets||[]).find(o=>o.userData&&o.userData.kiosk); if(t) t.userData.kiosk.tex.userData.redraw(); }
+function redrawKiosk(){ updBetHud(); }
+function updBetHud(){
+  const h=$('betHud'); if(!h) return;
+  if(!tableMount||tableMount.st.type==='slots'||!state){ h.hidden=true; return; }
+  h.hidden=false; const all=state.chip==='all', amt=all?state.money:(state.betAmt||0);
+  $('betHudVal').textContent=all?'ALL IN':money(amt); h.classList.toggle('over',!all&&amt>state.money);
+  let tot=0; try{ tot=seatApi&&seatApi.bets?sum(seatApi.bets()):(seatApi&&seatApi.bet?seatApi.bet():0); }catch(e){}
+  $('betHudTotL').hidden=!tot; $('betHudTot').hidden=!tot; $('betHudTot').textContent=money(tot||0);
+}
 function drawKpDisplay(g,w,h){
   g.fillStyle='#060708'; g.fillRect(0,0,w,h); g.fillStyle='#0f1d17'; rrect(g,8,8,w-16,h-16,16); g.fill();
   const st=state||{}, all=st.chip==='all', amt=all?(st.money||0):(st.betAmt||0), over=!all&&amt>(st.money||0);
@@ -3980,25 +3988,21 @@ function drawKpDisplay(g,w,h){
 const KP_KEYS=[['1','2','3'],['4','5','6'],['7','8','9'],['C','0','000']];
 function kiosk(parent,x,y,z,rotY,stand,sc){
   const k={hover:null}, kg=new THREE.Group(); kg.position.set(x,y,z); kg.rotation.y=rotY; if(sc) kg.scale.setScalar(sc); parent.add(kg);
-  const postH=stand?0.8:0.06;
-  cyl(0.032,0.038,postH,10,M.black,0,postH/2,0,kg);
-  if(stand){ cyl(0.2,0.23,0.04,20,M.black,0,0.02,0,kg); }
-  const sg=new THREE.Group(); sg.position.set(0,postH+0.3,-0.04); sg.rotation.x=stand?-0.86:-1.0; kg.add(sg);
-  mesh(geo('kpBody',()=>roundBox(0.62,0.92,0.09,0.035,2)),lamb(0x2a2830),0,0,-0.045,sg);
-  mesh(geo('kpFace',()=>roundBox(0.58,0.88,0.02,0.02,2)),lamb(0x36343d),0,0,-0.005,sg);
-  k.tex=canvasTex(512,128,drawKpDisplay,{text:true});
-  const disp=mesh(geo('kpDisp',()=>new THREE.PlaneGeometry(0.52,0.13)),new THREE.MeshBasicMaterial({map:k.tex,toneMapped:false}),0,0.355,0.008,sg);
-  disp.userData={kiosk:k,label:'Your bet. Type it with the keys'};
+  const postH=stand?0.78:0.06;
+  cyl(0.035,0.04,postH,12,lamb(0x24222a),0,postH/2,0,kg);
+  if(stand){ cyl(0.22,0.25,0.04,24,lamb(0x24222a),0,0.02,0,kg); }
+  const sg=new THREE.Group(); sg.position.set(0,postH+0.32,-0.06); sg.rotation.x=stand?-0.92:-1.0; kg.add(sg);
+  const body=smooth({color:0x2e2c34,specular:0x333333,shininess:30}), face=smooth({color:0x3d3b45,specular:0x222222,shininess:20});
+  mesh(geo('kpBody2',()=>roundBox(0.78,0.84,0.12,0.06,3)),body,0,0,-0.06,sg);
+  mesh(geo('kpFace2',()=>roundBox(0.73,0.79,0.02,0.04,2)),face,0,0,-0.004,sg);
   const keysG=new THREE.Group(); keysG.rotation.x=Math.PI/2; keysG.position.z=0.004; sg.add(keysG);
-  const out=[disp];
-  const lab=key=>/^[0-9]$/.test(key)?'Type '+key:key==='C'?'Clear the bet':key==='000'?'Add 000 (times 1,000)':key==='min'?'Smallest bet ('+money(10*floorMult())+')':key==='half'?'Bet half your cash':'Bet ALL your money';
+  const out=[];
+  const lab=key=>/^[0-9]$/.test(key)?'Type '+key:key==='C'?'Clear the bet':'Add 000 (times 1,000)';
   KP_KEYS.forEach((row,r)=>row.forEach((key,c)=>{
     const red=key==='C';
-    const cu=cushion(keysG,{label:key,css:red?'#d8382c':'#ead3cb',ink:red?null:'#231a1c',x:(c-1)*0.182,y:0,z:-0.2+r*0.15,w:0.165,d:0.132,h:0.075,face:'z',fn:()=>kioskPress(key),hover:lab(key)});
+    const cu=cushion(keysG,{label:key,css:red?'#d8382c':'#e6cec7',ink:red?null:'#1d1416',x:(c-1)*0.222,y:0,z:-0.288+r*0.192,w:0.205,d:0.17,h:0.09,face:'z',fn:()=>kioskPress(key),hover:lab(key)});
+    if(!r&&!c) cu.b.userData.kiosk=k;
     out.push(cu.b); }));
-  [['min','MIN','#3d6fe0'],['half','HALF','#3d6fe0'],['all','ALL IN','#8a44e0']].forEach(([key,label,css],c)=>{
-    const cu=cushion(keysG,{label,css,x:(c-1)*0.182,y:0,z:0.372,w:0.165,d:0.075,h:0.05,face:'z',fn:()=>kioskPress(key),hover:key==='min'?()=>lab(key):lab(key)});
-    out.push(cu.b); });
   return out;
 }
 function chipRow(parent,pts,face){
@@ -4031,7 +4035,7 @@ function mountTable(st){
   tableMount={st,api}; activeStation=st; seatApi=api; seat3d=st.type; lastSeatMsg=''; lastBetsStr=''; lastSlotUI='';
   if(st.ref){ st.ref.lastBet=null; st.ref.lastTot=null; }
   { clickTargets=(st.ref.targets||[]).slice(); if(st.ref.g&&rlHover){ st.ref.g.add(rlHover); rlHover.visible=false; } }
-  syncChipButtons(); kioskFresh=true; redrawKiosk();
+  syncChipButtons(); kioskFresh=true; redrawKiosk(); updBetHud();
   $('tableName').textContent=g.title; $('tableBar').hidden=true;
   { const m0=root.querySelector('.msg'); lastSeatMsg=m0?m0.textContent:''; }
 }
@@ -4085,9 +4089,9 @@ function seatTick(){
   if(m&&m.textContent!==lastSeatMsg){ lastSeatMsg=m.textContent; $('tableMsg').textContent=lastSeatMsg;
     if(/\$/.test(lastSeatMsg)) toast(lastSeatMsg,/you win|you won|cashed out/i.test(lastSeatMsg)?'win':/takes|lose|lost|bust|crash|house/i.test(lastSeatMsg)?'bad':''); }
   const st=activeStation; if(!st||!seatApi) return;
-  if(seatApi.bets&&st.type!=='slots'){ const b=seatApi.bets(), sj=JSON.stringify(b); if(sj!==lastBetsStr){ lastBetsStr=sj; syncStacks(st.ref,b); const tot=sum(b); $('betHud').hidden=!tot; $('betHudVal').textContent=money(tot); } }
+  if(seatApi.bets&&st.type!=='slots'){ const b=seatApi.bets(), sj=JSON.stringify(b); if(sj!==lastBetsStr){ lastBetsStr=sj; syncStacks(st.ref,b); updBetHud(); } }
   if(st.type==='blackjack'){
-    const b=seatApi.bet(); if(b!==st.ref.lastBet){ st.ref.lastBet=b; syncStacks(st.ref,b?{bet:b}:{}); }
+    const b=seatApi.bet(); if(b!==st.ref.lastBet){ st.ref.lastBet=b; syncStacks(st.ref,b?{bet:b}:{}); updBetHud(); }
     const dT=root.querySelector('[data-t="dealer"]'), pT=root.querySelector('[data-t="player"]');
     const txt=(dT?dT.textContent:'')+'|'+(pT?pT.textContent:''); if(txt!==st.ref.lastTot){ st.ref.lastTot=txt; st.ref.setTotals(dT?dT.textContent:'',pT?pT.textContent:''); }
   }
