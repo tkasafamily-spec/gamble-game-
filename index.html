@@ -895,7 +895,7 @@ function toast(text,kind){
   const t=document.createElement('div'); t.className='toast'+(kind?' '+kind:''); t.textContent=text;
   const box=$('toasts'); box.appendChild(t);
   while(box.children.length>3) box.firstChild.remove();
-  setTimeout(()=>{ t.remove(); },3600);
+  setTimeout(()=>{ t.remove(); },Math.max(3600,text.length*65));
 }
 
 /* =========================================================
@@ -2469,7 +2469,12 @@ async function setMic(on){
       if(!voiceDest()) throw {name:'NoAudio'};
       voice.stream=st; voice.src=ac.createMediaStreamSource(st); voice.src.connect(voice.gain); voice.gain.gain.value=1; voice.on=true;
       toast(party.peer&&party.code?'Mic on! Your party can hear you.':party.room?'Mic on. Voice chat only works on the website link, not the Claude link.':'Mic on. Make or join a party to talk to friends.','win');
-    }catch(e){ voice.on=false; toast(e&&e.name==='NotAllowedError'?'The browser blocked the mic. Allow it next to the address bar to talk.':'No microphone was found.','bad'); }
+    }catch(e){ voice.on=false;
+      let framed=false; try{ framed=window.self!==window.top; }catch(_){ framed=true; }
+      if(inClaude()||framed){ toast('The Claude link is not allowed to use your mic. Voice chat works on the game website: open Menu, then Party, then the green website buttons.','bad'); if($('partyWeb')){ $('partyWeb').hidden=false; partyWebLinks(); } }
+      else if(e&&e.name==='NotAllowedError') toast('Your browser blocked the mic. Click the lock or mic icon at the left of the address bar, set Microphone to Allow, reload the page, then press the mic button again.','bad');
+      else if(e&&(e.name==='NotFoundError'||e.name==='NoMic')) toast('No microphone was found. Plug one in and try again.','bad');
+      else toast('The mic could not start ('+((e&&e.name)||'error')+'). Close other apps using the mic and try again.','bad'); }
   } else {
     voice.on=false; if(voice.gain) voice.gain.gain.value=0;
     if(voice.src){ try{ voice.src.disconnect(); }catch(_){} voice.src=null; }
