@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CratorSMP Store</title>
+  <meta name="description" content="Buy ranks and crate keys for CratorSMP. Delivered in-game automatically.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="https://js.tebex.io/v/1.js" defer></script>
+</head>
+<body>
+  <div class="bg-crystals" aria-hidden="true"></div>
+
+  <header class="top">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 32 32" class="brand-gem" aria-hidden="true"><path d="M16 2 28 11 16 30 4 11Z" fill="url(#g)"/><path d="M4 11h24M16 2l-5 9 5 19 5-19z" stroke="#fff" stroke-opacity=".45" fill="none"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9c2ff"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs></svg>
+      <span id="brandName">CratorSMP</span><span class="brand-sub">Store</span>
+    </a>
+    <nav>
+      <a href="#ranks">Ranks</a>
+      <a href="#keys">Keys</a>
+      <a href="#how">How it works</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Delivered in-game automatically</p>
+      <h1>Power up on <span class="grad" id="heroName">CratorSMP</span></h1>
+      <p class="lead">Ranks and crate keys. Pay with Apple Pay, card or PayPal — your stuff lands in-game within a minute.</p>
+      <button class="ip" id="copyIp" type="button">
+        <span class="dot"></span><span id="ipText">cratorsmp.modrinth.gg</span><span class="copy">Copy IP</span>
+      </button>
+      <div class="pay-row" aria-label="Payment methods">
+        <span class="pm">Apple Pay</span><span class="pm">Card</span><span class="pm">PayPal</span>
+      </div>
+    </section>
+
+    <section id="ranks" class="block">
+      <div class="block-head">
+        <h2>Ranks</h2>
+        <p class="muted" id="gearNote"></p>
+      </div>
+      <div class="grid ranks" id="rankGrid"></div>
+    </section>
+
+    <section id="keys" class="block">
+      <div class="block-head">
+        <h2>Crate keys</h2>
+        <p class="muted">Open crates at spawn. Buy as many as you want.</p>
+      </div>
+      <div class="grid keys" id="keyGrid"></div>
+      <ul class="free" id="freeList"></ul>
+    </section>
+
+    <section id="how" class="block how">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><b>Pick</b><span>Press Buy on a rank or key.</span></li>
+        <li><b>Pay</b><span>Choose Apple Pay, card or PayPal and enter your details.</span></li>
+        <li><b>Username</b><span>Tell us your Minecraft name.</span></li>
+        <li><b>Play</b><span>Once the payment goes through it's given to you in-game automatically.</span></li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Not affiliated with Mojang or Microsoft. Payments are processed securely by Tebex.</p>
+    <p><a id="discordLink" href="#" target="_blank" rel="noopener">Discord</a></p>
+  </footer>
+
+  <!-- checkout window -->
+  <div class="modal" id="modal" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <button class="x" id="mClose" type="button" aria-label="Close">×</button>
+      <div class="m-item">
+        <div class="m-icon" id="mIcon"></div>
+        <div>
+          <h3 id="mTitle">Item</h3>
+          <p class="muted" id="mSub"></p>
+        </div>
+        <div class="m-price" id="mPrice"></div>
+      </div>
+
+      <div class="progress"><span data-s="1" class="on">Payment</span><span data-s="2">Username</span><span data-s="3">Confirm</span></div>
+
+      <!-- step 1 -->
+      <div class="step" data-step="1">
+        <div class="qty" id="qtyWrap" hidden>
+          <label for="qty">Amount</label>
+          <div class="qty-ctl">
+            <button type="button" data-q="-1">−</button>
+            <input id="qty" type="number" min="1" max="999" value="1" inputmode="numeric">
+            <button type="button" data-q="1">+</button>
+          </div>
+          <div class="qty-quick"><button type="button" data-set="5">5</button><button type="button" data-set="10">10</button><button type="button" data-set="64">64</button></div>
+        </div>
+        <p class="label">Choose how to pay</p>
+        <div class="methods">
+          <button type="button" class="method" data-m="applepay"><span class="mi apple"></span><b>Apple Pay</b></button>
+          <button type="button" class="method" data-m="card"><span class="mi card"></span><b>Card</b><small>Visa · Mastercard · Amex</small></button>
+          <button type="button" class="method" data-m="paypal"><span class="mi paypal">P</span><b>PayPal</b></button>
+        </div>
+        <button class="btn wide" id="toStep2" type="button" disabled>Continue</button>
+      </div>
+
+      <!-- step 2 -->
+      <div class="step" data-step="2" hidden>
+        <p class="label">Your Minecraft username</p>
+        <div class="user">
+          <img id="head" alt="" src="" width="48" height="48">
+          <input id="username" type="text" maxlength="17" autocomplete="off" spellcheck="false" placeholder="e.g. oreok">
+        </div>
+        <p class="hint">Bedrock players: put a <b>.</b> in front of your name (e.g. <b>.Steve</b>). You must have joined the server at least once.</p>
+        <p class="err" id="userErr" hidden></p>
+        <div class="row">
+          <button class="btn ghost" data-back="1" type="button">Back</button>
+          <button class="btn" id="toStep3" type="button">Continue</button>
+        </div>
+      </div>
+
+      <!-- step 3 -->
+      <div class="step" data-step="3" hidden>
+        <dl class="summary">
+          <div><dt>Item</dt><dd id="sItem"></dd></div>
+          <div><dt>Player</dt><dd id="sUser"></dd></div>
+          <div><dt>Pay with</dt><dd id="sMethod"></dd></div>
+          <div class="total"><dt>Total</dt><dd id="sTotal"></dd></div>
+        </dl>
+        <p class="hint">Next you'll enter your payment details on the secure Tebex checkout. When the payment goes through, it's given to <b id="sUser2"></b> in-game automatically.</p>
+        <p class="err" id="payErr" hidden></p>
+        <div class="row">
+          <button class="btn ghost" data-back="2" type="button">Back</button>
+          <button class="btn" id="payBtn" type="button">Pay <span id="payAmt"></span></button>
+        </div>
+      </div>
+
+      <!-- done -->
+      <div class="step" data-step="4" hidden>
+        <div class="done">
+          <div class="tick">✓</div>
+          <h3 id="doneTitle">Payment received!</h3>
+          <p class="muted" id="doneText"></p>
+          <button class="btn wide" id="doneBtn" type="button">Back to store</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
