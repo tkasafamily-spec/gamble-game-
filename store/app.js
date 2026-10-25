@@ -135,7 +135,8 @@
     $("#sMethod").textContent = METHODS[order.method];
     $("#sTotal").textContent = money(total());
     $("#payAmt").textContent = short(+total().toFixed(2));
-    const pp = order.method === "paypal" && S.paypal && S.paypal.link;
+    const pp = !TEBEX && order.method === "paypal" && S.paypal && S.paypal.link;
+    if (!pp) $("#payBtn").innerHTML = 'Pay <span id="payAmt">' + short(+total().toFixed(2)) + "</span>";
     $("#ppBox").hidden = !pp; $("#tebexHint").hidden = !!pp;
     if (pp) {
       order.code = "CS-" + Math.random().toString(36).slice(2, 7).toUpperCase();
@@ -158,7 +159,8 @@
 
   $("#payBtn").onclick = async () => {
     const btn = $("#payBtn"); const err = $("#payErr"); err.hidden = true;
-    if (order.method === "paypal" && S.paypal && S.paypal.link) {
+    saveName(order.user);
+    if (!TEBEX && order.method === "paypal" && S.paypal && S.paypal.link) {
       showDone("Almost done!", "Open a ticket in our Discord (#tickets) and send a screenshot of your PayPal payment with your order code " + order.code + ". Staff will give " + order.user + " the " + $("#sItem").textContent + " in-game.");
       return;
     }
@@ -182,7 +184,7 @@
       if (window.Tebex && Tebex.checkout) {
         close();
         Tebex.checkout.init({ ident, theme: "dark", colors: [{ name: "primary", color: "#b46cff" }] });
-        Tebex.checkout.on("payment:complete", () => showDone("Payment received!", "Thanks! " + order.user + " will get it in-game within a minute. Make sure you're online."));
+        Tebex.checkout.on("payment:complete", () => showDone("Payment went through!", "Thanks! " + order.user + " is getting " + $("#sItem").textContent + " in-game now (within a minute). Make sure you're online."));
         Tebex.checkout.launch();
       } else {
         location.href = (b2.data && b2.data.links && b2.data.links.checkout) || (b1.data.links && b1.data.links.checkout);
@@ -194,11 +196,103 @@
     }
   };
 
+
+  // ---------- bottom bar: Store / Top spenders / Profile ----------
+  const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  function saveName(n) { store.set("cs-name", n); }
+  const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const head = (n, sz) => "https://mc-heads.net/avatar/" + encodeURIComponent(String(n).replace(/^\./, "")) + "/" + sz;
+  const body = (n, sz) => "https://mc-heads.net/body/" + encodeURIComponent(String(n).replace(/^\./, "")) + "/" + sz;
+
+  function show(view) {
+    $$(".view").forEach((v) => (v.hidden = v.dataset.view !== view));
+    $$(".tabbar button").forEach((b) => b.classList.toggle("on", b.dataset.tab === view));
+    window.scrollTo({ top: 0 });
+    if (view === "top") renderTop();
+    if (view === "profile") renderProfile();
+  }
+  $$(".tabbar button").forEach((b) => (b.onclick = () => show(b.dataset.tab)));
+  // header links always go back to the store
+  $$(".top nav a, .brand").forEach((a) => a.addEventListener("click", () => { if ($('.view[data-view="store"]').hidden) { show("store"); setTimeout(() => { const t = a.getAttribute("href"); if (t && t.length > 1) document.querySelector(t)?.scrollIntoView(); }, 30); } }));
+  if (TEBEX) { const f = $(".foot p"); f.textContent = "Not affiliated with Mojang or Microsoft. Payments processed securely by Tebex."; $("#lead").textContent = "Ranks and crate keys for CratorSMP. Pay with Apple Pay, card or PayPal - it's given to you in-game automatically."; }
+
+  // purchases come from Tebex (every real payment). Cached for 60 seconds.
+  let cache = null, cacheAt = 0;
+  async function spenders() {
+    if (!TEBEX) return null;
+    if (cache && Date.now() - cacheAt < 60000) return cache;
+    const r = await fetch(`https://headless.tebex.io/api/accounts/${S.tebexToken}/sidebar`);
+    const j = await r.json();
+    const people = {}; let top = null;
+    for (const m of j.data || []) {
+      if (m.type === "recent_payments") {
+        for (const p of (m.data && m.data.payments) || []) {
+          const k = p.username.toLowerCase();
+          const e = people[k] || (people[k] = { name: p.username, total: 0, count: 0, items: [] });
+          e.total += parseFloat(p.price) || 0; e.count++;
+          e.items.push({ name: p.package && p.package.name, price: parseFloat(p.price) || 0, at: p.created_at });
+        }
+      }
+      if (m.type === "top_customer" && m.data) top = { name: m.data.username, total: parseFloat(m.data.total) || null, header: m.data.header };
+    }
+    const list = Object.values(people).sort((a, b) => b.total - a.total);
+    cache = { list, top }; cacheAt = Date.now();
+    return cache;
+  }
+
+  const notYet = (what) => `<div class="empty"><div class="empty-ic">★</div><h3>${what} is almost here</h3><p class="muted">It switches on as soon as automatic payments (Tebex) are connected. Every purchase will count.</p></div>`;
+
+  async function renderTop() {
+    const box = $("#topList");
+    if (!TEBEX) { box.innerHTML = notYet("The leaderboard"); return; }
+    box.innerHTML = '<p class="muted center">Loading…</p>';
+    try {
+      const { list, top } = await spenders();
+      if (!list.length && !top) { box.innerHTML = `<div class="empty"><div class="empty-ic">★</div><h3>No purchases yet</h3><p class="muted">Be the first on the board!</p></div>`; return; }
+      const pod = list.slice(0, 3);
+      const order3 = [pod[1], pod[0], pod[2]];
+      box.innerHTML =
+        (top ? `<div class="topcust"><img src="${head(top.name, 40)}" alt="" width="40" height="40"><div><small>${esc(top.header || "Top customer")}</small><b>${esc(top.name)}</b></div>${top.total ? `<span>${money(top.total)}</span>` : ""}</div>` : "") +
+        `<div class="podium">${order3.map((p, i) => p ? `<div class="pod p${[2, 1, 3][i]}"><img src="${body(p.name, 120)}" alt="" loading="lazy"><div class="pod-base"><span class="pos">#${[2, 1, 3][i]}</span><b>${esc(p.name)}</b><span>${money(p.total)}</span></div></div>` : '<div class="pod empty-pod"></div>').join("")}</div>` +
+        `<ol class="board">${list.slice(3, 50).map((p, i) => `<li><span class="pos">#${i + 4}</span><img src="${head(p.name, 32)}" alt="" width="32" height="32" loading="lazy"><b>${esc(p.name)}</b><span class="amt">${money(p.total)}</span></li>`).join("")}</ol>`;
+    } catch (e) { box.innerHTML = '<p class="muted center">Couldn\'t load the leaderboard right now.</p>'; }
+  }
+
+  async function renderProfile(nameArg) {
+    const name = (nameArg || $("#profName").value || store.get("cs-name") || "").trim();
+    $("#profName").value = name;
+    const box = $("#profCard");
+    if (!name) { box.innerHTML = '<p class="muted center">Type your Minecraft username to see your profile.</p>'; return; }
+    if (!NAME.test(name)) { box.innerHTML = '<p class="err center">That doesn\'t look like a Minecraft username.</p>'; return; }
+    saveName(name);
+    let me = null, pos = null;
+    if (TEBEX) {
+      box.innerHTML = '<p class="muted center">Loading…</p>';
+      try { const { list } = await spenders(); const i = list.findIndex((p) => p.name.toLowerCase() === name.toLowerCase()); if (i >= 0) { me = list[i]; pos = i + 1; } } catch (e) {}
+    }
+    const items = me ? me.items.slice(0, 10) : [];
+    box.innerHTML = `
+      <div class="prof">
+        <img class="prof-skin" src="${body(name, 180)}" alt="">
+        <div class="prof-main">
+          <h3>${esc(name)}</h3>
+          <div class="stats">
+            <div><small>Money spent</small><b>${TEBEX ? money(me ? me.total : 0) : "—"}</b></div>
+            <div><small>Purchases</small><b>${TEBEX ? (me ? me.count : 0) : "—"}</b></div>
+            <div><small>Leaderboard</small><b>${pos ? "#" + pos : "—"}</b></div>
+          </div>
+        </div>
+      </div>
+      ${TEBEX ? (items.length ? `<p class="label">Recent purchases</p><ul class="hist">${items.map((it) => `<li><b>${esc(it.name || "Item")}</b><span>${it.at ? new Date(it.at).toLocaleDateString() : ""}</span><span class="amt">${money(it.price)}</span></li>`).join("")}</ul>` : '<p class="muted center">No purchases yet. Pick something from the store!</p>') : notYet("Money spent tracking")}`;
+  }
+  $("#profGo").onclick = () => renderProfile();
+  $("#profName").addEventListener("keydown", (e) => { if (e.key === "Enter") renderProfile(); });
+
   // back from the full-page checkout
   const paid = new URLSearchParams(location.search).get("paid");
   if (paid) {
     history.replaceState(null, "", location.pathname);
     order.item = S.ranks[0];
-    showDone("Payment received!", "Thanks! " + paid + " will get it in-game within a minute. Make sure you're online.");
+    showDone("Payment went through!", "Thanks! " + paid + " will get it in-game within a minute. Make sure you're online.");
   }
 })();
