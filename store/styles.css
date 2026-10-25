@@ -208,3 +208,14 @@ main { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
 .kq-quick button { flex: 1; padding: 6px; font-size: 13px; color: var(--muted); }
 .kq-quick button:hover { color: var(--text); border-color: var(--c); }
 @media (max-width: 640px) { .sheet { padding: 22px; } }
+
+/* PayPal step */
+.pp { margin-top: 16px; text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.pp-title { margin: 0 0 14px; font-size: 17px; }
+.pp-title b { color: #fff; }
+.pp-qr { display: block; margin: 0 auto; width: 240px; height: 240px; border-radius: 12px; background: #fff; padding: 8px; }
+.pp-open { display: block; text-decoration: none; background: #ffc439; color: #003087; box-shadow: none; }
+.pp-label { margin: 18px 0 8px; text-align: left; }
+.pp-note { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--bg2); border: 1.5px dashed var(--accent); color: var(--text); border-radius: 10px; padding: 12px 14px; font: 600 15px Inter, sans-serif; cursor: pointer; text-align: left; }
+.pp-note small { color: var(--accent); flex: none; }
+.pp .hint { text-align: left; }

@@ -28,14 +28,14 @@
 
   <main>
     <section class="hero">
-      <p class="eyebrow">Delivered in-game automatically</p>
+      <p class="eyebrow">Ranks &amp; crate keys</p>
       <h1>Power up on <span class="grad" id="heroName">CratorSMP</span></h1>
-      <p class="lead">Ranks and crate keys. Pay with Apple Pay, card or PayPal — your stuff lands in-game within a minute.</p>
+      <p class="lead" id="lead">Ranks and crate keys for CratorSMP. Pay with PayPal and get it in-game.</p>
       <button class="ip" id="copyIp" type="button">
         <span class="dot"></span><span id="ipText">cratorsmp.modrinth.gg</span><span class="copy">Copy IP</span>
       </button>
       <div class="pay-row" aria-label="Payment methods">
-        <span class="pm">Apple Pay</span><span class="pm">Card</span><span class="pm">PayPal</span>
+        <span class="pm needs-tebex">Apple Pay</span><span class="pm needs-tebex">Card</span><span class="pm">PayPal</span>
       </div>
     </section>
 
@@ -60,15 +60,15 @@
       <h2>How it works</h2>
       <ol class="steps">
         <li><b>Pick</b><span>Press Buy on a rank or key.</span></li>
-        <li><b>Pay</b><span>Choose Apple Pay, card or PayPal and enter your details.</span></li>
-        <li><b>Username</b><span>Tell us your Minecraft name.</span></li>
-        <li><b>Play</b><span>Once the payment goes through it's given to you in-game automatically.</span></li>
+        <li><b>Username</b><span>Type your Minecraft name.</span></li>
+        <li><b>Pay</b><span>Send the exact amount on PayPal with your order code in the note.</span></li>
+        <li><b>Play</b><span>Open a ticket in our Discord with a screenshot of the payment and staff give it to you in-game.</span></li>
       </ol>
     </section>
   </main>
 
   <footer class="foot">
-    <p>Not affiliated with Mojang or Microsoft. Payments are processed securely by Tebex.</p>
+    <p>Not affiliated with Mojang or Microsoft. Payments by PayPal.</p>
     <p><a id="discordLink" href="#" target="_blank" rel="noopener">Discord</a></p>
   </footer>
 
@@ -85,7 +85,7 @@
         <div class="m-price" id="mPrice"></div>
       </div>
 
-      <div class="progress"><span data-s="1" class="on">Payment</span><span data-s="2">Username</span><span data-s="3">Confirm</span></div>
+      <div class="progress"><span data-s="1" class="on">Choose</span><span data-s="2">Username</span><span data-s="3">Pay</span></div>
 
       <!-- step 1 -->
       <div class="step" data-step="1">
@@ -100,8 +100,8 @@
         </div>
         <p class="label">Choose how to pay</p>
         <div class="methods">
-          <button type="button" class="method" data-m="applepay"><span class="mi apple"></span><b>Apple Pay</b></button>
-          <button type="button" class="method" data-m="card"><span class="mi card"></span><b>Card</b><small>Visa · Mastercard · Amex</small></button>
+          <button type="button" class="method needs-tebex" data-m="applepay"><span class="mi apple"></span><b>Apple Pay</b></button>
+          <button type="button" class="method needs-tebex" data-m="card"><span class="mi card"></span><b>Card</b><small>Visa · Mastercard · Amex</small></button>
           <button type="button" class="method" data-m="paypal"><span class="mi paypal">P</span><b>PayPal</b></button>
         </div>
         <button class="btn wide" id="toStep2" type="button" disabled>Continue</button>
@@ -130,7 +130,15 @@
           <div><dt>Pay with</dt><dd id="sMethod"></dd></div>
           <div class="total"><dt>Total</dt><dd id="sTotal"></dd></div>
         </dl>
-        <p class="hint">Next you'll enter your payment details on the secure Tebex checkout. When the payment goes through, it's given to <b id="sUser2"></b> in-game automatically.</p>
+        <p class="hint" id="tebexHint">Next you'll enter your payment details on the secure Tebex checkout. When the payment goes through, it's given to <b id="sUser2"></b> in-game automatically.</p>
+        <div class="pp" id="ppBox" hidden>
+          <p class="pp-title">Send exactly <b id="ppAmt"></b> to <b id="ppName"></b> on PayPal</p>
+          <img class="pp-qr" src="paypal-qr.png" alt="PayPal QR code" width="240" height="240">
+          <a class="btn wide pp-open" id="ppOpen" href="#" target="_blank" rel="noopener">Open PayPal</a>
+          <p class="label pp-label">Put this in the PayPal note:</p>
+          <button type="button" class="pp-note" id="ppNote"><span id="ppNoteText"></span><small>Copy</small></button>
+          <p class="hint">Your order code is <b id="ppCode"></b>. Keep it - staff use it to find your payment.</p>
+        </div>
         <p class="err" id="payErr" hidden></p>
         <div class="row">
           <button class="btn ghost" data-back="2" type="button">Back</button>

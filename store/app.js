@@ -4,7 +4,8 @@
   const $$ = (q) => [...document.querySelectorAll(q)];
   const money = (n) => "$" + n.toFixed(2) + (S.currency === "USD" ? " USD" : " " + S.currency);
   const short = (n) => (n < 1 ? Math.round(n * 100) + "c" : "$" + (n % 1 ? n.toFixed(2) : n));
-  const DEMO = !S.tebexToken;
+  const TEBEX = !!S.tebexToken;
+  if (!TEBEX) document.querySelectorAll(".needs-tebex").forEach((e) => e.remove());
 
   const crown = (c) => `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 16l9 8 9-14 9 14 9-8-4 22H10z" fill="${c}" fill-opacity=".22" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="6" cy="15" r="3" fill="${c}"/><circle cx="24" cy="9" r="3" fill="${c}"/><circle cx="42" cy="15" r="3" fill="${c}"/><path d="M12 33h24" stroke="${c}" stroke-width="2.5"/></svg>`;
   const key = (c) => `<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="15" cy="24" r="9" fill="${c}" fill-opacity=".22" stroke="${c}" stroke-width="2.5"/><circle cx="15" cy="24" r="3" fill="${c}"/><path d="M24 24h18M36 24v7M42 24v5" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/></svg>`;
@@ -87,6 +88,7 @@
     $("#qtyWrap").hidden = kind !== "key";
     $$(".method").forEach((m) => m.classList.remove("sel"));
     $("#toStep2").disabled = true;
+    if ($$(".method").length === 1) $(".method").click();
     $("#userErr").hidden = true; $("#payErr").hidden = true;
     setQty(kind === "key" ? cardQty(i) : 1); step(1);
     $("#modal").hidden = false;
@@ -133,6 +135,17 @@
     $("#sMethod").textContent = METHODS[order.method];
     $("#sTotal").textContent = money(total());
     $("#payAmt").textContent = short(+total().toFixed(2));
+    const pp = order.method === "paypal" && S.paypal && S.paypal.link;
+    $("#ppBox").hidden = !pp; $("#tebexHint").hidden = !!pp;
+    if (pp) {
+      order.code = "CS-" + Math.random().toString(36).slice(2, 7).toUpperCase();
+      $("#ppAmt").textContent = money(total());
+      $("#ppName").textContent = S.paypal.name;
+      $("#ppOpen").href = S.paypal.link;
+      $("#ppCode").textContent = order.code;
+      $("#ppNoteText").textContent = order.code + " | " + (order.kind === "key" ? order.qty + "x " : "") + order.item.name + " | " + v;
+      $("#payBtn").textContent = "I've sent the payment";
+    }
     step(3);
   };
 
@@ -141,14 +154,12 @@
     $("#doneTitle").textContent = title; $("#doneText").textContent = text; step(4); $("#modal").hidden = false;
   }
   $("#doneBtn").onclick = close;
+  $("#ppNote").onclick = () => { navigator.clipboard?.writeText($("#ppNoteText").textContent); toast("Note copied!"); };
 
   $("#payBtn").onclick = async () => {
     const btn = $("#payBtn"); const err = $("#payErr"); err.hidden = true;
-    if (DEMO) {
-      btn.disabled = true; btn.textContent = "Processing…";
-      await new Promise((r) => setTimeout(r, 1200));
-      btn.disabled = false; btn.innerHTML = 'Pay <span id="payAmt">' + short(+total().toFixed(2)) + "</span>";
-      showDone("Demo order complete", "This store is in demo mode, so nothing was charged. Once Tebex is connected, " + order.user + " would get it in-game automatically.");
+    if (order.method === "paypal" && S.paypal && S.paypal.link) {
+      showDone("Almost done!", "Open a ticket in our Discord (#tickets) and send a screenshot of your PayPal payment with your order code " + order.code + ". Staff will give " + order.user + " the " + $("#sItem").textContent + " in-game.");
       return;
     }
     if (!order.item.tebexPackage) { err.textContent = "This item isn't set up yet. Please try again later."; err.hidden = false; return; }

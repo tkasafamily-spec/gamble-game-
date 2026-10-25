@@ -7,8 +7,14 @@ window.STORE = {
   discord: "",                // e.g. "https://discord.gg/xxxx" (leave "" to hide the button)
   currency: "USD",
 
-  // Your Tebex PUBLIC token (Tebex panel -> Integrations -> Webstore token / Headless API).
-  // Leave "" to run in DEMO mode (nothing is charged, nothing is given).
+  // PayPal: players scan the QR / open this link, send the money, then open a Discord ticket with a screenshot.
+  paypal: {
+    name: "Trevor Price",
+    link: "https://www.paypal.com/qrcodes/p2pqrc/9E4D9QZNXL6UQ"
+  },
+
+  // OPTIONAL - automatic Apple Pay / card / delivery later: your Tebex PUBLIC token (Tebex panel -> Integrations -> Webstore token / Headless API).
+  // Leave "" to only show PayPal.
   tebexToken: "",
 
   // Each product: tebexPackage = the package ID (or ident) from the Tebex panel.
