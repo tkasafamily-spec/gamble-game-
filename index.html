@@ -127,6 +127,9 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 @keyframes emopop{0%{opacity:0;transform:translate(-50%,20px) scale(.5)}15%{opacity:1;transform:translate(-50%,0) scale(1.15)}30%{transform:translate(-50%,-4px) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-40px) scale(1)}}
 .emobtn{position:fixed;z-index:12;left:calc(84px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border-radius:50%;border:3px solid #fff;background:rgba(10,8,12,.82);font-size:28px;cursor:pointer;padding:0}
 .emobtn[hidden]{display:none}
+.micbtn .kb,.emobtn .kb{position:absolute;right:-6px;top:-6px;min-width:20px;height:20px;padding:0 4px;border-radius:6px;background:#ffd23a;color:#1a0a00;font:900 12px/20px Archivo,sans-serif;box-shadow:0 2px 4px rgba(0,0,0,.5);pointer-events:none}
+.emobtn{position:fixed}
+@media (pointer:coarse){ .micbtn .kb,.emobtn .kb{display:none} }
 @media (pointer:coarse){ .emobtn{bottom:calc(168px + env(safe-area-inset-bottom,0px));left:calc(96px + env(safe-area-inset-left,0px))} }
 .crosshair.hot{width:14px;height:14px;margin:-7px 0 0 -7px;background:transparent;box-shadow:0 0 0 2px var(--brass-hi),0 0 12px var(--lucky-glow)}
 .prompt{position:fixed;z-index:10;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:999px;background:var(--hud);box-shadow:inset 0 0 0 1px var(--brass),0 10px 30px var(--shadow);font-weight:600;white-space:nowrap;pointer-events:none;animation:rise .25s ease both}
@@ -524,8 +527,8 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 .floor-card.here{box-shadow:inset 0 0 0 2px var(--brass-hi)}
 .floor-card.locked{opacity:.62}
 
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+html.quick-anim{}
+@media (min-width:1px){ html.quick-anim *,html.quick-anim *::before,html.quick-anim *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 </style>
 </head>
@@ -557,7 +560,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
   <span class="eyebrow">Walk straight to</span>
 </nav>
 <div class="crosshair" id="crosshair" hidden></div>
-<button class="micbtn off" id="micBtn" type="button" aria-label="Microphone" aria-pressed="false" title="Mic is off (click to turn on)" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button>
+<button class="micbtn off" id="micBtn" type="button" aria-label="Microphone" aria-pressed="false" title="Mic is off (click to turn on)" hidden><span class="kb">M</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button>
 <div class="crashhud" id="crashHud" hidden><b id="crashHudM">1.00×</b><small id="crashHudS"></small></div>
 <div class="hotbar" id="hotbar" hidden aria-label="Your items"></div><div class="hb-name" id="hbName" hidden></div>
 <div class="hold-ring" id="holdRing" hidden></div>
@@ -568,7 +571,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="emote-wheel" id="emoteWheel" hidden aria-label="Emotes"></div>
 <div class="emote-pop" id="emotePop" aria-hidden="true"></div>
-<button class="emobtn" id="emoteBtn" type="button" aria-label="Emotes" title="Emotes (B)" hidden>😄</button>
+<button class="emobtn" id="emoteBtn" type="button" aria-label="Emotes" title="Emotes (B)" hidden>😄<span class="kb">B</span></button>
 <div class="install-help" id="installHelp" hidden role="dialog" aria-labelledby="installHelpT"><b id="installHelpT">Get the app</b><p id="installHelpP"></p><div class="ih-row"><button class="btn" id="installCopy" type="button">Copy game link</button><button class="spin" id="installClose" type="button">OK</button></div></div>
 <div class="fade" id="fade"></div>
 <div class="tablebar" id="tableBar" hidden><b id="tableName">Roulette</b><span id="tableMsg"></span><span class="tb-chip" id="tableChip"></span></div>
@@ -635,7 +638,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
       <button class="mbtn" id="micMenuBtn" type="button">Mic: Off</button>
       <button class="mbtn install-btn" id="installBtn2" type="button" hidden>⬇ Download the app</button>
       <button class="mbtn" id="quitBtn" type="button">Quit to title</button>
-      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 27 Oct, app + emotes</p>
+      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 28 Oct, speed fix</p>
     </div>
     <div class="menu-pane" id="menuTasks" hidden>
       <p class="party-status">Do tasks to earn ⭐ points, then spend them at the shop outside. Tasks start over each new run. Press T any time to see them.</p>
@@ -713,7 +716,8 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 const TAU=Math.PI*2;
 const START=1000, GOAL=10000, FOV=70;
 const STORE='big-or-broke-casino-v1';
-const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
+// Quick animations only when the player turns them on in the game (Windows' "animation effects off" made every game run at super speed)
+const reduceMotion={get matches(){ try{ return !!(state&&state.quickAnim); }catch(_){ return false; } }};
 const touchMode=matchMedia('(pointer: coarse)').matches;
 const $=id=>document.getElementById(id);
 const fmt=n=>Math.round(n).toLocaleString('en-AU');
@@ -3705,11 +3709,16 @@ function friendEmote(m,a,dt){
 }
 /* ---- download / install the game as an app (website link) ---- */
 let installEvt=null;
-function isStandalone(){ try{ return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true; }catch(_){ return false; } }
+function isStandalone(){ try{ const st=matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: window-controls-overlay)').matches||matchMedia('(display-mode: minimal-ui)').matches||navigator.standalone===true; if(st){ try{ localStorage.setItem('cwfAppInstalled','1'); }catch(_){} } return st; }catch(_){ return false; } }
 function onWebsite(){ return /github\.io$/.test(location.hostname)||/^(localhost|127\.0\.0\.1)$/.test(location.hostname); }
-function renderInstall(){ const show=onWebsite()&&!isStandalone(); document.querySelectorAll('.install-btn').forEach(b=>{ b.hidden=!show; }); }
+function appInstalled(){ try{ return isStandalone()||localStorage.getItem('cwfAppInstalled')==='1'; }catch(_){ return isStandalone(); } }
+function renderInstall(){
+  // Chrome and Edge only offer the install prompt when the app is NOT installed yet, so there we wait for it
+  const ua=navigator.userAgent||'', chromish=('onbeforeinstallprompt' in window)&&!/OPR\/|Opera|OPX/.test(ua);
+  const show=onWebsite()&&!appInstalled()&&(chromish?!!installEvt:true);
+  document.querySelectorAll('.install-btn').forEach(b=>{ b.hidden=!show; }); }
 window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installEvt=e; renderInstall(); });
-window.addEventListener('appinstalled',()=>{ installEvt=null; renderInstall(); try{ toast('Installed! Open Casino With Friends from your desktop or Start menu.','win'); }catch(_){} });
+window.addEventListener('appinstalled',()=>{ installEvt=null; try{ localStorage.setItem('cwfAppInstalled','1'); }catch(_){} renderInstall(); try{ toast('Installed! Open Casino With Friends from your desktop or Start menu.','win'); }catch(_){} });
 function installHelpText(){
   const ua=navigator.userAgent||'';
   if(/iPhone|iPad|iPod/.test(ua)) return 'On iPhone or iPad: open this page in Safari, tap the Share button, then tap "Add to Home Screen".';
@@ -3724,7 +3733,7 @@ async function doInstall(){
   $('installHelpP').textContent=installHelpText(); $('installHelp').hidden=false; if(document.pointerLockElement) document.exitPointerLock();
 }
 if('serviceWorker' in navigator&&onWebsite()&&location.protocol!=='file:'){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
-const BUILD_ID='2026-10-27-emotes';
+const BUILD_ID='2026-10-28-speed';
 (function autoUpdate(){
   if(!/github\.io$/.test(location.hostname)||!window.fetch) return;
   let tries=0; try{ tries=+(sessionStorage.getItem('cwfUpd')||0); }catch(_){}
@@ -6286,7 +6295,7 @@ function lockFailed(){
 document.addEventListener('pointerlockerror',lockFailed);
 document.addEventListener('pointerlockchange',()=>{
   locked=document.pointerLockElement===$('scene');
-  if(locked){ skipMoves=2; dragMode=false; if(emoteOpen) closeEmotes(false); }
+  if(locked){ skipMoves=2; dragMode=false; if(emoteOpen) closeEmotes(false); try{ if(document.activeElement&&document.activeElement!==document.body) document.activeElement.blur(); }catch(_){} }
   if(!locked&&mode==='walk'&&!touchMode&&!emoteOpen) openMenuNow();
 });
 let skipMoves=0, mAvg=6;
@@ -6313,11 +6322,10 @@ document.addEventListener('keydown',e=>{
   }
   if(mode==='game'&&seat3d&&e.code==='Space'){ e.preventDefault(); if(seat3d==='roulette'){ if(activeStation) activeStation.ref.play.userData.onClick(); } else if(seatApi&&seatApi.spin) seatApi.spin(); return; }
   if(mode!=='walk') return;
-  if(e.target&&(e.target.tagName==='BUTTON'&&e.code==='Space')) return;
+  if(e.target&&(e.target.tagName==='BUTTON'&&e.code==='Space')&&!locked) return;
   keys.add(e.code);
   if(e.code==='KeyE'||e.code==='Enter'){ e.preventDefault(); if(hoverHit&&hoverHit.object.userData.hold){ if(!e.repeat) startHold(); } else if(!e.repeat){ if(hoverHit) pressTarget(hoverHit); else if(near) useStation(near); } }
-  if(e.code==='Space'&&tableMount){ e.preventDefault(); if(!e.repeat) quickSpin(); }
-  else if(e.code==='Space'&&!e.repeat){ e.preventDefault(); jump(); }
+  if(e.code==='Space'){ e.preventDefault(); if(e.repeat) return; if(tableMount&&hoverHit&&clickTargets.includes(hoverHit.object)) quickSpin(); else jump(); }
   if(e.code==='KeyT'&&!e.repeat){ pendingPane='tasks'; if(document.pointerLockElement) document.exitPointerLock(); else openMenuNow(); return; }
   if(e.code==='KeyB'&&!e.repeat){ if(emoteOpen) closeEmotes(true); else openEmotes(); return; }
   if(e.code==='KeyG'&&!e.repeat){ dropHeld(); return; }
@@ -6436,7 +6444,7 @@ function updatePlayer(dt){
   if(speed>0.6&&stepIdx!==P.lastStep){ P.lastStep=stepIdx; sfx.step(); }
   const ck=dt>0?1-Math.exp(-dt*30):1;
   camera.position.x+=(P.x-camera.position.x)*ck; camera.position.z+=(P.z-camera.position.z)*ck;
-  if(P.vy||P.y){ P.vy=(P.vy||0)-17*dt; P.y=(P.y||0)+P.vy*dt; if(P.y<=0){ if(P.vy<-4){ try{ sfx.step(); }catch(_){} } P.y=0; P.vy=0; } }
+  if(P.vy||P.y){ P.vy=(P.vy||0)-17*dt; P.y=(P.y||0)+P.vy*dt; if(P.y<=0){ if(P.vy<-4){ try{ sfx.step(); }catch(_){} } P.y=0; P.vy=0; if(keys.has('Space')||performance.now()-(P.jumpBuf||0)<220){ P.jumpBuf=0; jump(); } } }
   camera.position.y=EYE+(P.y||0)+Math.sin(P.bob*2)*0.026*amp*((P.y||0)>0?0:1);
   camera.rotation.set(P.pitch,P.yaw,0);
   if(dizzy){ const k=Math.min(1,(state.dizzyUntil-Date.now())/6000), tt=performance.now(); camera.rotation.z=Math.sin(tt*0.0021)*0.17*k; P.yaw+=Math.sin(tt*0.0013)*0.0015*k; camera.fov=(FOV)+Math.sin(tt*0.0017)*7*k; camera.updateProjectionMatrix(); dizzyOn=true; }
@@ -6631,12 +6639,12 @@ document.addEventListener('keydown',e=>{
   if(/^Digit[1-8]$/.test(e.code)){ e.preventDefault(); e.stopImmediatePropagation(); doEmote(+e.code.slice(5)-1); closeEmotes(true); }
   else if(e.code==='Escape'||e.code==='KeyB'){ e.preventDefault(); e.stopImmediatePropagation(); closeEmotes(e.code==='KeyB'); }
 },true);
-function jump(){ if(mode!=='walk'||tableMount||cut) return; if((P.y||0)>0.001) return; P.vy=5.2; try{ tone(320,0,0.08,0.03,'triangle'); tone(480,0.04,0.08,0.025,'triangle'); }catch(_){} taskEvent&&0; }
+function jump(){ if(mode!=='walk'||cut) return; if((P.y||0)>0.03){ P.jumpBuf=performance.now(); return; } P.y=Math.max(P.y||0,0.0001); P.vy=5.4; try{ tone(320,0,0.08,0.03,'triangle'); tone(480,0.04,0.08,0.025,'triangle'); }catch(_){} taskEvent&&0; }
 function setKeys(){
   const lists=[$('keyList'),$('keyList2')]; lists.forEach(u=>{ if(u) u.textContent=''; });
   const rows=touchMode
     ?[['Stick','Walk (push far to run)'],['Drag','Look around'],['Press','Aim the dot and tap'],['😄','Emotes'],['Games','Jump to any table']]
-    :[['W A S D','Walk'],['Mouse','Look around'],['Click / E','Press buttons, bet on spots'],['Hold E','Buy an item in the shops'],['0–9 / Screen','Type your bet'],['Space','Jump (at a game: spin, deal or roll)'],['Shift','Run'],['B','Emotes (wave, dance, laugh…)'],['P','Party: play with friends'],['C / V','Photo / sing (Camera and Microphone items)'],['Esc','Menu'],['Games','Jump to any table']];
+    :[['W A S D','Walk'],['Mouse','Look around'],['Click / E','Press buttons, bet on spots'],['Hold E','Buy an item in the shops'],['0–9 / Screen','Type your bet'],['Space','Jump (at a game: spin, deal or roll)'],['Shift','Run'],['B','Emotes (wave, dance, laugh…)'],['P','Party: play with friends'],['M','Mic on / off'],['C / V','Photo / sing (Camera and Microphone items)'],['Esc','Menu'],['Games','Jump to any table']];
   lists.forEach(u=>{ if(!u) return; rows.forEach(([k,v])=>{ const li=document.createElement('li'); li.innerHTML='<kbd>'+k+'</kbd><span>'+v+'</span>'; u.appendChild(li); }); });
 }
 function enterCasino(){
