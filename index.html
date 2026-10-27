@@ -116,6 +116,18 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 .install-help{position:fixed;z-index:60;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));padding:20px 22px;border-radius:16px;background:#160c22;box-shadow:inset 0 0 0 2px #ffd23a,0 20px 60px rgba(0,0,0,.6);color:#fff;text-align:center}
 .install-help b{display:block;font-size:22px;margin-bottom:8px;color:#ffd23a}.install-help p{margin:0 0 14px;line-height:1.45}.install-help .ih-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .install-help[hidden]{display:none}
+.emote-wheel{position:fixed;z-index:40;left:50%;top:50%;width:330px;height:330px;margin:-165px 0 0 -165px;border-radius:50%;background:radial-gradient(circle,rgba(20,10,30,.55) 0 30%,rgba(20,10,30,.88) 31% 100%);box-shadow:0 0 0 3px #ffd23a,0 20px 60px rgba(0,0,0,.6)}
+.emote-wheel[hidden]{display:none}
+.emote-wheel button{position:absolute;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;border:3px solid rgba(255,255,255,.85);background:rgba(255,255,255,.12);font-size:38px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;transition:transform .1s ease,background .1s ease}
+.emote-wheel button:hover,.emote-wheel button:focus-visible{transform:scale(1.15);background:rgba(255,210,58,.35);outline:none}
+.emote-wheel button small{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font:800 11px/1 Archivo,sans-serif;color:#fff;text-shadow:0 1px 2px #000;white-space:nowrap}
+.emote-wheel .ew-mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:900 13px/1.2 Archivo,sans-serif;color:#ffd23a;text-align:center;pointer-events:none}
+.emote-pop{position:fixed;z-index:13;left:50%;top:26%;font-size:64px;transform:translate(-50%,0);opacity:0;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
+.emote-pop.on{animation:emopop 1.6s ease-out both}
+@keyframes emopop{0%{opacity:0;transform:translate(-50%,20px) scale(.5)}15%{opacity:1;transform:translate(-50%,0) scale(1.15)}30%{transform:translate(-50%,-4px) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-40px) scale(1)}}
+.emobtn{position:fixed;z-index:12;left:calc(84px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border-radius:50%;border:3px solid #fff;background:rgba(10,8,12,.82);font-size:28px;cursor:pointer;padding:0}
+.emobtn[hidden]{display:none}
+@media (pointer:coarse){ .emobtn{bottom:calc(168px + env(safe-area-inset-bottom,0px));left:calc(96px + env(safe-area-inset-left,0px))} }
 .crosshair.hot{width:14px;height:14px;margin:-7px 0 0 -7px;background:transparent;box-shadow:0 0 0 2px var(--brass-hi),0 0 12px var(--lucky-glow)}
 .prompt{position:fixed;z-index:10;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:999px;background:var(--hud);box-shadow:inset 0 0 0 1px var(--brass),0 10px 30px var(--shadow);font-weight:600;white-space:nowrap;pointer-events:none;animation:rise .25s ease both}
 .act-btn{position:fixed;z-index:11;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));min-height:64px;padding:0 22px;border-radius:999px;border:0;background:linear-gradient(180deg,var(--brass-hi),var(--brass));color:var(--brass-ink);font:400 18px/1 var(--font-display);box-shadow:0 4px 0 var(--brass-deep),0 10px 24px var(--shadow)}
@@ -554,6 +566,9 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 <div class="joy" id="joy" hidden><span class="joy-knob" id="joyKnob"></span></div>
 <div class="touch-hint" id="touchHint" hidden>Drag here to look around</div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="emote-wheel" id="emoteWheel" hidden aria-label="Emotes"></div>
+<div class="emote-pop" id="emotePop" aria-hidden="true"></div>
+<button class="emobtn" id="emoteBtn" type="button" aria-label="Emotes" title="Emotes (B)" hidden>😄</button>
 <div class="install-help" id="installHelp" hidden role="dialog" aria-labelledby="installHelpT"><b id="installHelpT">Get the app</b><p id="installHelpP"></p><div class="ih-row"><button class="btn" id="installCopy" type="button">Copy game link</button><button class="spin" id="installClose" type="button">OK</button></div></div>
 <div class="fade" id="fade"></div>
 <div class="tablebar" id="tableBar" hidden><b id="tableName">Roulette</b><span id="tableMsg"></span><span class="tb-chip" id="tableChip"></span></div>
@@ -620,7 +635,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
       <button class="mbtn" id="micMenuBtn" type="button">Mic: Off</button>
       <button class="mbtn install-btn" id="installBtn2" type="button" hidden>⬇ Download the app</button>
       <button class="mbtn" id="quitBtn" type="button">Quit to title</button>
-      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 27 Oct, app update</p>
+      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 27 Oct, app + emotes</p>
     </div>
     <div class="menu-pane" id="menuTasks" hidden>
       <p class="party-status">Do tasks to earn ⭐ points, then spend them at the shop outside. Tasks start over each new run. Press T any time to see them.</p>
@@ -2243,10 +2258,10 @@ function netErr(e){ const t=e&&e.type; if(t==='browser-incompatible') return WEB
 const party={peer:null,code:null,host:false,conns:new Map(),hostConn:null,members:{},iv:null,avatars:new Map(),guest:null,uid:null,pr:0,base:1000,applied:0,led:{},solo:null,soloKey:null,joinedAt:0,board:null};
 function fmtK(n){ const a=Math.abs(n), sg=n<0?'-':''; if(a>=1e9) return sg+'$'+(a/1e9).toFixed(a>=1e10?0:1)+'B'; if(a>=1e6) return sg+'$'+(a/1e6).toFixed(a>=1e7?0:1)+'M'; if(a>=1e3) return sg+'$'+(a/1e3).toFixed(a>=1e4?0:1)+'K'; return sg+'$'+Math.round(a); }
 function myName(){ return playerName()||party.guest||(party.guest='Guest'+(10+randInt(90))); }
-function selfState(){ return {id:party.peer?party.peer.id:'me',name:myName(),skin:state.skin||0x2f8cf5,shirt:lookOf().shirt,pants:lookOf().pants,feat:lookOf().feat,hat:lookOf().hat,style:lookOf().style,money:state.money,uid:party.uid||'',net:party.uid?myNet():0,pr:party.pr||0,ph:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?2:myPh(),fl:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?cut.next:(state.floor||0),dl:Math.round((state.dayLeft||0)*10)/10,led:party.uid?ledOut():{},gm:myGame(),hx:hxOut(),hd:heldItem||'',floor:loc==='casino'?(state.floor||0):loc==='lobby'?-1:-2,x:Math.round(P.x*100)/100,z:Math.round(P.z*100)/100,yaw:Math.round(P.yaw*100)/100}; }
+function selfState(){ return {id:party.peer?party.peer.id:'me',name:myName(),skin:state.skin||0x2f8cf5,shirt:lookOf().shirt,pants:lookOf().pants,feat:lookOf().feat,hat:lookOf().hat,style:lookOf().style,money:state.money,uid:party.uid||'',net:party.uid?myNet():0,pr:party.pr||0,ph:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?2:myPh(),fl:(cut&&cut.next!=null&&(cut.kind==='pre'||cut.kind==='elev'))?cut.next:(state.floor||0),dl:Math.round((state.dayLeft||0)*10)/10,led:party.uid?ledOut():{},gm:myGame(),hx:hxOut(),em:(myEmote.k>=0&&Date.now()-myEmote.t<4000)?[myEmote.k,myEmote.t]:null,jy:Math.round((P.y||0)*100)/100,hd:heldItem||'',floor:loc==='casino'?(state.floor||0):loc==='lobby'?-1:-2,x:Math.round(P.x*100)/100,z:Math.round(P.z*100)/100,yaw:Math.round(P.yaw*100)/100}; }
 function cleanMember(m){
   if(!m||typeof m!=='object') return null;
-  return {id:String(m.id||'').slice(0,80),name:String(m.name||'Player').slice(0,16),skin:Number.isInteger(m.skin)?(m.skin&0xffffff):0xb5e04a,shirt:Number.isInteger(m.shirt)?(m.shirt&0xffffff):null,pants:Number.isInteger(m.pants)?(m.pants&0xffffff):null,feat:Number.isInteger(m.feat)?clamp(m.feat,-1,3):null,hat:HAT_KINDS.includes(m.hat)?m.hat:'none',style:STYLE_KINDS.includes(m.style)?m.style:'none',money:Number.isFinite(m.money)?m.money:0,uid:typeof m.uid==='string'?m.uid.replace(/[^a-z0-9]/g,'').slice(0,16):'',net:Number.isFinite(m.net)?clamp(Math.round(m.net),-1e15,1e15):0,pr:Number.isInteger(m.pr)?clamp(m.pr,0,1e6):0,ph:m.ph===1||m.ph===2?m.ph:0,fl:Number.isInteger(m.fl)?clamp(m.fl,0,FLOORS.length-1):0,dl:Number.isFinite(m.dl)?clamp(m.dl,0,600):0,led:cleanLed(m.led),gm:cleanGame(m.gm),hx:cleanHx(m.hx),hd:(typeof m.hd==='string'&&ITEMS.some(i=>i.k===m.hd))?m.hd:'',floor:Number.isInteger(m.floor)?clamp(m.floor,-2,9):0,x:Number.isFinite(m.x)?clamp(m.x,-40,40):0,z:Number.isFinite(m.z)?clamp(m.z,-RD/2,70):0,yaw:Number.isFinite(m.yaw)?m.yaw:0};
+  return {id:String(m.id||'').slice(0,80),name:String(m.name||'Player').slice(0,16),skin:Number.isInteger(m.skin)?(m.skin&0xffffff):0xb5e04a,shirt:Number.isInteger(m.shirt)?(m.shirt&0xffffff):null,pants:Number.isInteger(m.pants)?(m.pants&0xffffff):null,feat:Number.isInteger(m.feat)?clamp(m.feat,-1,3):null,hat:HAT_KINDS.includes(m.hat)?m.hat:'none',style:STYLE_KINDS.includes(m.style)?m.style:'none',money:Number.isFinite(m.money)?m.money:0,uid:typeof m.uid==='string'?m.uid.replace(/[^a-z0-9]/g,'').slice(0,16):'',net:Number.isFinite(m.net)?clamp(Math.round(m.net),-1e15,1e15):0,pr:Number.isInteger(m.pr)?clamp(m.pr,0,1e6):0,ph:m.ph===1||m.ph===2?m.ph:0,fl:Number.isInteger(m.fl)?clamp(m.fl,0,FLOORS.length-1):0,dl:Number.isFinite(m.dl)?clamp(m.dl,0,600):0,led:cleanLed(m.led),gm:cleanGame(m.gm),hx:cleanHx(m.hx),em:(Array.isArray(m.em)&&Number.isInteger(m.em[0])&&m.em[0]>=0&&m.em[0]<EMOTES.length&&Number.isFinite(m.em[1]))?[m.em[0],m.em[1]]:null,jy:Number.isFinite(m.jy)?clamp(m.jy,0,3):0,hd:(typeof m.hd==='string'&&ITEMS.some(i=>i.k===m.hd))?m.hd:'',floor:Number.isInteger(m.floor)?clamp(m.floor,-2,9):0,x:Number.isFinite(m.x)?clamp(m.x,-40,40):0,z:Number.isFinite(m.z)?clamp(m.z,-RD/2,70):0,yaw:Number.isFinite(m.yaw)?m.yaw:0};
 }
 let crashLive=null, hiloLive=null, plinkoLive=[], plinkoSeq=0;
 /* Draw-call saver. Lots of little static parts (table legs, trims, lamps...) share materials. After the world is built we
@@ -2333,7 +2348,7 @@ function mergeWatch(){
     if(dyn){ mergeRelease(e); MERGE.dirty.add(e.b); }
   }
   const W=MERGE.mats, nm=W.length;
-  for(let k=0;k<Math.min(nm,60);k++){ const w=W[MERGE.mr=(MERGE.mr+1)%nm]; if(w.done) continue; if(matSig(w.m)!==w.sig){ w.done=true; w.list.forEach(e=>{ if(!e.dead){ mergeRelease(e); MERGE.dirty.add(e.b); } }); } }
+  for(let k=0;k<Math.min(nm,25);k++){ const w=W[MERGE.mr=(MERGE.mr+1)%nm]; if(w.done) continue; if(matSig(w.m)!==w.sig){ w.done=true; w.list.forEach(e=>{ if(!e.dead){ mergeRelease(e); MERGE.dirty.add(e.b); } }); } }
   if(MERGE.dirty.size){ MERGE.dirty.forEach(b=>mergeBuild(b)); MERGE.dirty.clear(); }
 }
 /* Everything a game does to its 3D table (spin the wheel, deal a card, roll dice, drop a ball...) goes through
@@ -2727,6 +2742,7 @@ function partyTick(dt){
     if(moving){ ud.phase+=dt*9; const sn=Math.sin(ud.phase); ud.legs[0].rotation.x=sn*0.5; ud.legs[1].rotation.x=-sn*0.5; ud.arms[0].rotation.x=-sn*0.4; ud.arms[1].rotation.x=sn*0.4; }
     else { ud.legs.forEach(l=>{ l.rotation.x*=0.85; }); ud.arms.forEach(l=>{ l.rotation.x*=0.85; }); }
     try{ friendGame(m,a); }catch(e){}
+    try{ friendEmote(m,a,dt); }catch(e){}
     if(a.hd!==m.hd){ a.hd=m.hd; if(a.hg){ a.g.remove(a.hg); a.hg=null; } if(m.hd){ const hg=new THREE.Group(); hg.position.set(-0.5,1.02,0.24); hg.scale.setScalar(1.3); makeItem(m.hd,hg); a.g.add(hg); a.hg=hg; } }
     if(a.hg) a.hg.rotation.y=Math.sin(performance.now()*0.002)*0.3;
   });
@@ -3646,6 +3662,47 @@ const GAMES={
   elevator:{title:'Elevator',build:buildElevator}
 };
 let mode='start', current=null;
+/* ---- emotes ---- */
+const EMOTES=[['wave','👋','Wave'],['dance','💃','Dance'],['laugh','😂','Laugh'],['clap','👏','Clap'],['thumbs','👍','Nice'],['cry','😭','Cry'],['angry','😡','Angry'],['love','😍','Love']];
+let myEmote={k:-1,t:0}, emoteOpen=false;
+function buildEmoteWheel(){
+  const w=$('emoteWheel'); if(!w||w.childElementCount) return;
+  EMOTES.forEach(([k,e,l],i)=>{ const a=-Math.PI/2+i*Math.PI*2/EMOTES.length, b=document.createElement('button'); b.type='button'; b.innerHTML=e+'<small>'+(i+1)+' '+l+'</small>'; b.setAttribute('aria-label',l);
+    b.style.left=(165+Math.cos(a)*118)+'px'; b.style.top=(165+Math.sin(a)*118)+'px';
+    b.addEventListener('click',ev=>{ ev.stopPropagation(); doEmote(i); closeEmotes(true); }); w.appendChild(b); });
+  const mid=document.createElement('div'); mid.className='ew-mid'; mid.textContent='EMOTES'; w.appendChild(mid);
+}
+function openEmotes(){ if(emoteOpen||(mode!=='walk'&&mode!=='game')) return; buildEmoteWheel(); emoteOpen=true; $('emoteWheel').hidden=false; keys.clear(); if(document.pointerLockElement) document.exitPointerLock(); }
+function closeEmotes(relock){ if(!emoteOpen) return; emoteOpen=false; $('emoteWheel').hidden=true; if(relock&&mode==='walk'&&!touchMode) requestLock(); }
+function doEmote(i){
+  myEmote={k:i,t:Date.now()}; const p=$('emotePop'); p.textContent=EMOTES[i][1]; p.classList.remove('on'); void p.offsetWidth; p.classList.add('on');
+  try{ tone(660,0,0.07,0.04,'triangle'); tone(990,0.06,0.09,0.035,'triangle'); }catch(_){}
+  if(meAvatar) meAvatar.userData.emote={k:i,t0:performance.now()};
+}
+function emoteAnim(ud,k,el){
+  // el = seconds since the emote started. Arms/legs come from the round character rig.
+  const A=ud.arms||[], L=ud.legs||[], w=Math.min(1,el*4)*Math.min(1,Math.max(0,(3.2-el)*3));
+  if(k==='wave'&&A[1]){ A[1].rotation.z=-2.4*w; A[1].rotation.x=Math.sin(el*12)*0.5*w; }
+  else if(k==='dance'){ A.forEach((a,i)=>{ a.rotation.z=(i?-1:1)*(1.2+Math.sin(el*10+i*3)*0.8)*w; }); L.forEach((l,i)=>{ l.rotation.x=Math.sin(el*10+i*Math.PI)*0.5*w; }); }
+  else if(k==='clap'){ A.forEach((a,i)=>{ a.rotation.x=-1.3*w; a.rotation.z=(i?1:-1)*(0.35+Math.sin(el*18)*0.35)*w; }); }
+  else if(k==='thumbs'&&A[1]){ A[1].rotation.x=-1.5*w; }
+  else if(k==='angry'){ A.forEach((a,i)=>{ a.rotation.z=(i?-1:1)*(0.6+Math.abs(Math.sin(el*16))*0.4)*w; }); }
+  else if(k==='cry'||k==='laugh'||k==='love'){ A.forEach((a,i)=>{ a.rotation.x=-0.9*w; a.rotation.z=(i?1:-1)*0.4*w; }); }
+}
+function emoteBody(k,el){ const w=Math.min(1,el*4)*Math.min(1,Math.max(0,(3.2-el)*3)); if(k==='dance') return {ry:Math.sin(el*5)*0.6*w,y:Math.abs(Math.sin(el*10))*0.12*w,rz:0}; if(k==='laugh') return {ry:0,y:Math.abs(Math.sin(el*14))*0.05*w,rz:Math.sin(el*20)*0.06*w}; if(k==='cry') return {ry:0,y:0,rz:Math.sin(el*9)*0.05*w}; if(k==='love'||k==='thumbs') return {ry:0,y:Math.abs(Math.sin(el*8))*0.08*w,rz:0}; return {ry:0,y:0,rz:0}; }
+function emoteTex(e){ const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); g.font='96px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(e,64,70); const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t; }
+const emoteTexCache={};
+function friendEmote(m,a,dt){
+  if(m.em&&m.em[1]!==a.emT){ a.emT=m.em[1]; a.emK=EMOTES[m.em[0]][0]; a.emS=performance.now();
+    const e=EMOTES[m.em[0]][1]; if(!a.emSp){ a.emSp=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true,toneMapped:false,depthTest:false})); a.emSp.scale.set(0.62,0.62,1); a.g.add(a.emSp); }
+    a.emSp.material.map=emoteTexCache[e]||(emoteTexCache[e]=emoteTex(e)); a.emSp.material.needsUpdate=true; a.emSp.visible=true; }
+  const ud=a.body.userData, wrap=a.g.children[0];
+  if(a.emK){ const el=(performance.now()-a.emS)/1000;
+    if(el>3.4){ a.emK=null; if(a.emSp) a.emSp.visible=false; if(wrap){ wrap.rotation.set(0,0,0); wrap.position.y=0; } (ud.arms||[]).forEach(x=>{ x.rotation.z=0; }); }
+    else { emoteAnim(ud,a.emK,el); const B=emoteBody(a.emK,el); if(wrap){ wrap.rotation.y=B.ry; wrap.rotation.z=B.rz; wrap.position.y=B.y; } if(a.emSp){ a.emSp.position.y=playerTop()+0.95+Math.sin(el*4)*0.05; a.emSp.material.opacity=Math.min(1,el*5,(3.4-el)*3); } } }
+  // jumping friends
+  const jy=m.jy||0; a.jy=(a.jy||0)+(jy-(a.jy||0))*Math.min(1,dt*18); a.g.position.y=a.jy;
+}
 /* ---- download / install the game as an app (website link) ---- */
 let installEvt=null;
 function isStandalone(){ try{ return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true; }catch(_){ return false; } }
@@ -3667,7 +3724,7 @@ async function doInstall(){
   $('installHelpP').textContent=installHelpText(); $('installHelp').hidden=false; if(document.pointerLockElement) document.exitPointerLock();
 }
 if('serviceWorker' in navigator&&onWebsite()&&location.protocol!=='file:'){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
-const BUILD_ID='2026-10-27-app';
+const BUILD_ID='2026-10-27-emotes';
 (function autoUpdate(){
   if(!/github\.io$/.test(location.hostname)||!window.fetch) return;
   let tries=0; try{ tries=+(sessionStorage.getItem('cwfUpd')||0); }catch(_){}
@@ -6229,8 +6286,8 @@ function lockFailed(){
 document.addEventListener('pointerlockerror',lockFailed);
 document.addEventListener('pointerlockchange',()=>{
   locked=document.pointerLockElement===$('scene');
-  if(locked){ skipMoves=2; dragMode=false; }
-  if(!locked&&mode==='walk'&&!touchMode) openMenuNow();
+  if(locked){ skipMoves=2; dragMode=false; if(emoteOpen) closeEmotes(false); }
+  if(!locked&&mode==='walk'&&!touchMode&&!emoteOpen) openMenuNow();
 });
 let skipMoves=0, mAvg=6;
 document.addEventListener('mousemove',e=>{
@@ -6260,7 +6317,9 @@ document.addEventListener('keydown',e=>{
   keys.add(e.code);
   if(e.code==='KeyE'||e.code==='Enter'){ e.preventDefault(); if(hoverHit&&hoverHit.object.userData.hold){ if(!e.repeat) startHold(); } else if(!e.repeat){ if(hoverHit) pressTarget(hoverHit); else if(near) useStation(near); } }
   if(e.code==='Space'&&tableMount){ e.preventDefault(); if(!e.repeat) quickSpin(); }
+  else if(e.code==='Space'&&!e.repeat){ e.preventDefault(); jump(); }
   if(e.code==='KeyT'&&!e.repeat){ pendingPane='tasks'; if(document.pointerLockElement) document.exitPointerLock(); else openMenuNow(); return; }
+  if(e.code==='KeyB'&&!e.repeat){ if(emoteOpen) closeEmotes(true); else openEmotes(); return; }
   if(e.code==='KeyG'&&!e.repeat){ dropHeld(); return; }
   if(e.code==='KeyM'&&!e.repeat){ setMic(!voice.want); return; }
   if(e.code==='KeyP'&&!e.repeat){ pendingPane='party'; if(document.pointerLockElement) document.exitPointerLock(); else openMenuNow(); return; }
@@ -6377,7 +6436,8 @@ function updatePlayer(dt){
   if(speed>0.6&&stepIdx!==P.lastStep){ P.lastStep=stepIdx; sfx.step(); }
   const ck=dt>0?1-Math.exp(-dt*30):1;
   camera.position.x+=(P.x-camera.position.x)*ck; camera.position.z+=(P.z-camera.position.z)*ck;
-  camera.position.y=EYE+Math.sin(P.bob*2)*0.026*amp;
+  if(P.vy||P.y){ P.vy=(P.vy||0)-17*dt; P.y=(P.y||0)+P.vy*dt; if(P.y<=0){ if(P.vy<-4){ try{ sfx.step(); }catch(_){} } P.y=0; P.vy=0; } }
+  camera.position.y=EYE+(P.y||0)+Math.sin(P.bob*2)*0.026*amp*((P.y||0)>0?0:1);
   camera.rotation.set(P.pitch,P.yaw,0);
   if(dizzy){ const k=Math.min(1,(state.dizzyUntil-Date.now())/6000), tt=performance.now(); camera.rotation.z=Math.sin(tt*0.0021)*0.17*k; P.yaw+=Math.sin(tt*0.0013)*0.0015*k; camera.fov=(FOV)+Math.sin(tt*0.0017)*7*k; camera.updateProjectionMatrix(); dizzyOn=true; }
   else if(dizzyOn){ dizzyOn=false; camera.fov=FOV; camera.updateProjectionMatrix(); renderCash(); }
@@ -6431,6 +6491,8 @@ function syncHud(){
   $('joy').hidden=!(walking&&touchMode);
   $('touchHint').hidden=!(walking&&touchMode);
   if($('micBtn')) $('micBtn').hidden=!(walking||mode==='game'||mode==='cut');
+  if($('emoteBtn')) $('emoteBtn').hidden=!(walking||mode==='game');
+  if(!walking&&mode!=='game'&&emoteOpen) closeEmotes(false);
   if(!walking){ $('prompt').hidden=true; $('actBtn').hidden=true; }
 }
 let lastNearKey='', hoverHit=null, hoverBtn=null;
@@ -6564,11 +6626,17 @@ function onResize(){
 }
 window.addEventListener('resize',onResize);
 
+document.addEventListener('keydown',e=>{
+  if(!emoteOpen) return;
+  if(/^Digit[1-8]$/.test(e.code)){ e.preventDefault(); e.stopImmediatePropagation(); doEmote(+e.code.slice(5)-1); closeEmotes(true); }
+  else if(e.code==='Escape'||e.code==='KeyB'){ e.preventDefault(); e.stopImmediatePropagation(); closeEmotes(e.code==='KeyB'); }
+},true);
+function jump(){ if(mode!=='walk'||tableMount||cut) return; if((P.y||0)>0.001) return; P.vy=5.2; try{ tone(320,0,0.08,0.03,'triangle'); tone(480,0.04,0.08,0.025,'triangle'); }catch(_){} taskEvent&&0; }
 function setKeys(){
   const lists=[$('keyList'),$('keyList2')]; lists.forEach(u=>{ if(u) u.textContent=''; });
   const rows=touchMode
-    ?[['Stick','Walk (push far to run)'],['Drag','Look around'],['Press','Aim the dot and tap'],['Games','Jump to any table']]
-    :[['W A S D','Walk'],['Mouse','Look around'],['Click / E','Press buttons, bet on spots'],['Hold E','Buy an item in the shops'],['0–9 / Screen','Type your bet'],['Space','Spin, deal or roll'],['Shift','Run'],['P','Party: play with friends'],['C / V','Photo / sing (Camera and Microphone items)'],['Esc','Menu'],['Games','Jump to any table']];
+    ?[['Stick','Walk (push far to run)'],['Drag','Look around'],['Press','Aim the dot and tap'],['😄','Emotes'],['Games','Jump to any table']]
+    :[['W A S D','Walk'],['Mouse','Look around'],['Click / E','Press buttons, bet on spots'],['Hold E','Buy an item in the shops'],['0–9 / Screen','Type your bet'],['Space','Jump (at a game: spin, deal or roll)'],['Shift','Run'],['B','Emotes (wave, dance, laugh…)'],['P','Party: play with friends'],['C / V','Photo / sing (Camera and Microphone items)'],['Esc','Menu'],['Games','Jump to any table']];
   lists.forEach(u=>{ if(!u) return; rows.forEach(([k,v])=>{ const li=document.createElement('li'); li.innerHTML='<kbd>'+k+'</kbd><span>'+v+'</span>'; u.appendChild(li); }); });
 }
 function enterCasino(){
@@ -6600,6 +6668,8 @@ $('partyBtn').addEventListener('click',()=>{ menuPane('party'); partyWebLinks();
 $('tasksBtn').addEventListener('click',()=>menuPane('tasks'));
 $('micBtn').addEventListener('click',e=>{ e.stopPropagation(); setMic(!voice.want); });
 $('micMenuBtn').addEventListener('click',()=>setMic(!voice.want));
+$('emoteBtn').addEventListener('click',e=>{ e.stopPropagation(); if(emoteOpen) closeEmotes(false); else openEmotes(); });
+$('emoteWheel').addEventListener('click',e=>{ if(e.target===$('emoteWheel')) closeEmotes(true); });
 ['installBtn1','installBtn2'].forEach(id=>$(id).addEventListener('click',e=>{ e.stopPropagation(); doInstall(); }));
 $('installClose').addEventListener('click',()=>{ $('installHelp').hidden=true; });
 $('installCopy').addEventListener('click',()=>{ const u=location.origin+location.pathname; try{ navigator.clipboard.writeText(u).then(()=>toast('Link copied! Paste it into Edge or Chrome.','win')).catch(()=>toast(u)); }catch(_){ toast(u); } });
