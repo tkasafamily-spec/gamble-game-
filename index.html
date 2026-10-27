@@ -7,7 +7,14 @@
 <meta property="og:title" content="Casino With Friends">
 <meta property="og:description" content="Walk a 3D casino and play roulette, blackjack, slots and more with play money.">
 <meta name="theme-color" content="#0d0507">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23b5e04a' stroke='%23fff' stroke-width='4'/%3E%3Ccircle cx='23' cy='27' r='7' fill='%23fff'/%3E%3Ccircle cx='41' cy='27' r='7' fill='%23fff'/%3E%3Ccircle cx='24' cy='28' r='3.5' fill='%23141016'/%3E%3Ccircle cx='42' cy='28' r='3.5' fill='%23141016'/%3E%3Cpath d='M22 41q10 9 20 0' stroke='%23141016' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Casino Friends">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Casino With Friends</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -105,6 +112,10 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 .micbtn.talk{box-shadow:0 0 0 5px #3ee07a,0 0 18px #3ee07a}
 .micbtn[hidden]{display:none}
 @media (pointer:coarse){ .micbtn{bottom:calc(168px + env(safe-area-inset-bottom,0px));left:calc(28px + env(safe-area-inset-left,0px))} }
+.install-btn{margin-top:12px;width:100%;background:linear-gradient(180deg,#ffd23a,#f0a31a)!important;color:#1a0a00!important;border-color:#fff!important}
+.install-help{position:fixed;z-index:60;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));padding:20px 22px;border-radius:16px;background:#160c22;box-shadow:inset 0 0 0 2px #ffd23a,0 20px 60px rgba(0,0,0,.6);color:#fff;text-align:center}
+.install-help b{display:block;font-size:22px;margin-bottom:8px;color:#ffd23a}.install-help p{margin:0 0 14px;line-height:1.45}.install-help .ih-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.install-help[hidden]{display:none}
 .crosshair.hot{width:14px;height:14px;margin:-7px 0 0 -7px;background:transparent;box-shadow:0 0 0 2px var(--brass-hi),0 0 12px var(--lucky-glow)}
 .prompt{position:fixed;z-index:10;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:999px;background:var(--hud);box-shadow:inset 0 0 0 1px var(--brass),0 10px 30px var(--shadow);font-weight:600;white-space:nowrap;pointer-events:none;animation:rise .25s ease both}
 .act-btn{position:fixed;z-index:11;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));min-height:64px;padding:0 22px;border-radius:999px;border:0;background:linear-gradient(180deg,var(--brass-hi),var(--brass));color:var(--brass-ink);font:400 18px/1 var(--font-display);box-shadow:0 4px 0 var(--brass-deep),0 10px 24px var(--shadow)}
@@ -543,6 +554,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
 <div class="joy" id="joy" hidden><span class="joy-knob" id="joyKnob"></span></div>
 <div class="touch-hint" id="touchHint" hidden>Drag here to look around</div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="install-help" id="installHelp" hidden role="dialog" aria-labelledby="installHelpT"><b id="installHelpT">Get the app</b><p id="installHelpP"></p><div class="ih-row"><button class="btn" id="installCopy" type="button">Copy game link</button><button class="spin" id="installClose" type="button">OK</button></div></div>
 <div class="fade" id="fade"></div>
 <div class="tablebar" id="tableBar" hidden><b id="tableName">Roulette</b><span id="tableMsg"></span><span class="tb-chip" id="tableChip"></span></div>
 <div id="tableBody" hidden></div>
@@ -589,6 +601,7 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
       <p class="fine" id="loadNote">Roulette, blackjack, slots, the Big Six wheel and Over / Under 7 dice are all on the floor.</p>
       <div class="fallback-games" id="fallbackGames" hidden></div>
     </div>
+    <button class="mbtn install-btn" id="installBtn1" type="button" hidden>⬇ Download the app</button>
   </div>
 </div>
 
@@ -605,8 +618,9 @@ kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 
       <button class="mbtn" id="acctBtn" type="button">Log in</button>
       <button class="mbtn" id="moveAcctBtn" type="button" hidden>Use my account on another device</button>
       <button class="mbtn" id="micMenuBtn" type="button">Mic: Off</button>
+      <button class="mbtn install-btn" id="installBtn2" type="button" hidden>⬇ Download the app</button>
       <button class="mbtn" id="quitBtn" type="button">Quit to title</button>
-      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 24 Oct, live tables</p>
+      <p class="party-status" style="opacity:.6;font-size:12px">Game version: 27 Oct, app update</p>
     </div>
     <div class="menu-pane" id="menuTasks" hidden>
       <p class="party-status">Do tasks to earn ⭐ points, then spend them at the shop outside. Tasks start over each new run. Press T any time to see them.</p>
@@ -2235,6 +2249,93 @@ function cleanMember(m){
   return {id:String(m.id||'').slice(0,80),name:String(m.name||'Player').slice(0,16),skin:Number.isInteger(m.skin)?(m.skin&0xffffff):0xb5e04a,shirt:Number.isInteger(m.shirt)?(m.shirt&0xffffff):null,pants:Number.isInteger(m.pants)?(m.pants&0xffffff):null,feat:Number.isInteger(m.feat)?clamp(m.feat,-1,3):null,hat:HAT_KINDS.includes(m.hat)?m.hat:'none',style:STYLE_KINDS.includes(m.style)?m.style:'none',money:Number.isFinite(m.money)?m.money:0,uid:typeof m.uid==='string'?m.uid.replace(/[^a-z0-9]/g,'').slice(0,16):'',net:Number.isFinite(m.net)?clamp(Math.round(m.net),-1e15,1e15):0,pr:Number.isInteger(m.pr)?clamp(m.pr,0,1e6):0,ph:m.ph===1||m.ph===2?m.ph:0,fl:Number.isInteger(m.fl)?clamp(m.fl,0,FLOORS.length-1):0,dl:Number.isFinite(m.dl)?clamp(m.dl,0,600):0,led:cleanLed(m.led),gm:cleanGame(m.gm),hx:cleanHx(m.hx),hd:(typeof m.hd==='string'&&ITEMS.some(i=>i.k===m.hd))?m.hd:'',floor:Number.isInteger(m.floor)?clamp(m.floor,-2,9):0,x:Number.isFinite(m.x)?clamp(m.x,-40,40):0,z:Number.isFinite(m.z)?clamp(m.z,-RD/2,70):0,yaw:Number.isFinite(m.yaw)?m.yaw:0};
 }
 let crashLive=null, hiloLive=null, plinkoLive=[], plinkoSeq=0;
+/* Draw-call saver. Lots of little static parts (table legs, trims, lamps...) share materials. After the world is built we
+   copy those parts into one mesh per material per 10 m area and hide the originals on an unused layer. A watcher keeps
+   checking the originals: if one ever moves, hides, or changes material, it goes back to normal and its group is rebuilt. */
+const MERGE={entries:[],buckets:[],root:null,floors:[],rr:0,dirty:new Set(),stage:0,cand:null,fsg:new Set(),mats:[],mr:0};
+function matSig(m){ let o=m.type; for(const k in m){ if(k==='uuid'||k==='id'||k==='name'||k==='version'||k==='userData'||k.charAt(0)==='_') continue; const v=m[k]; if(v==null){ o+='|'+k+':-'; continue; } const t=typeof v; if(t==='number'||t==='boolean'||t==='string') o+='|'+k+':'+v; else if(v.isColor) o+='|'+k+':'+v.getHexString(); else if(v.isTexture) o+='|'+k+':'+v.uuid; else if(v.isVector2) o+='|'+k+':'+v.x+','+v.y; } return o+(m.userData&&m.userData.keepSmooth?'|ks':''); }
+function mergeFloorGroup(f){ if(!MERGE.floors[f]){ const g=new THREE.Group(); g.name='mergedFloor'+f; g.visible=(state.floor||0)===f; scene.add(g); MERGE.floors[f]=g; } return MERGE.floors[f]; }
+function mergeCollect(){
+  const skip=new Set(), add=a=>{ if(a&&a.forEach) a.forEach(o=>{ if(o) o.traverse?o.traverse(x=>skip.add(x)):skip.add(o); }); };
+  add(dropTargets);
+  try{ if(mirror){ add(mirror.hide); skip.add(mirror.mesh); } }catch(_){}
+  try{ if(meAvatar) meAvatar.traverse(x=>skip.add(x)); }catch(_){}
+  const fs=new Map(); floorStands.forEach(f=>{ if(Number.isInteger(f.floor)){ fs.set(f.g,f.floor); MERGE.fsg.add(f.g); } });
+  const protoBR=THREE.Object3D.prototype.onBeforeRender;
+  const okMat=m=>m&&!Array.isArray(m)&&!m.transparent&&m.visible!==false&&!m.vertexColors&&!m.wireframe&&!(m.alphaTest>0)&&(m.isMeshPhongMaterial||m.isMeshLambertMaterial||m.isMeshBasicMaterial||m.isMeshStandardMaterial);
+  scene.updateMatrixWorld(true);
+  const out=[], sph=new THREE.Sphere();
+  const visit=(o,chain,fl,blocked)=>{
+    for(const c of o.children){
+      if(c===camera||c.isCamera||(c.name&&c.name.indexOf('merged')===0)) continue;
+      const f=fs.has(c)?fs.get(c):fl;
+      const hasUd=c.userData&&Object.keys(c.userData).length>0;
+      if(c.isMesh&&!blocked&&c.visible&&!skip.has(c)&&okMat(c.material)&&!c.isInstancedMesh&&!c.isSkinnedMesh&&!c.renderOrder&&c.layers.mask===1&&c.onBeforeRender===protoBR&&c.frustumCulled){
+        const g=c.geometry;
+        if(g&&g.isBufferGeometry&&g.attributes.position&&g.attributes.position.itemSize===3&&!(g.morphAttributes&&Object.keys(g.morphAttributes).length)&&g.drawRange.start===0&&g.drawRange.count===Infinity
+          &&(g.attributes.normal||c.material.isMeshBasicMaterial)&&(g.attributes.uv||!c.material.map)){
+          if(!g.boundingSphere) g.computeBoundingSphere();
+          sph.copy(g.boundingSphere).applyMatrix4(c.matrixWorld);
+          if(sph.radius<12) out.push({m:c,chain:chain.slice(),fl:f,mat:c.material,geo:g,mw:Float64Array.from(c.matrixWorld.elements),mask:c.layers.mask,cell:Math.floor(sph.center.x/10)+','+Math.floor(sph.center.z/10)});
+        }
+      }
+      const bad=blocked||(!c.visible&&!fs.has(c))||(hasUd&&!c.isMesh)||c.isSprite||c.isPoints||c.isLine||skip.has(c);
+      if(c.children.length) visit(c,[c].concat(chain),f,bad);
+    }
+  };
+  visit(scene,[],null,false);
+  return out;
+}
+function mergeSame(e){ const el=e.m.matrixWorld.elements, s0=e.mw; for(let k=0;k<16;k++) if(Math.abs(el[k]-s0[k])>1e-4) return false; return true; }
+function mergeStart(){ if(MERGE.stage||!scene||!world) return; MERGE.stage=1; try{ MERGE.cand=mergeCollect(); }catch(e){ MERGE.stage=9; } }
+function mergeFinish(){
+  if(MERGE.stage!==1) return; MERGE.stage=2;
+  try{
+    const map=new Map();
+    const sigs=new Map(); const sigOf=m=>{ let v=sigs.get(m); if(v==null){ v=matSig(m); sigs.set(m,v); } return v; };
+    MERGE.cand.forEach(e=>{ if(!mergeSame(e)||!e.m.visible||e.m.material!==e.mat) return; const k=sigOf(e.mat)+'|'+(e.fl==null?'S':e.fl)+'|'+e.cell; let b=map.get(k); if(!b){ b={list:[],mat:e.mat,fl:e.fl,mesh:null}; map.set(k,b); } b.list.push(e); e.b=b; });
+    MERGE.cand=null;
+    const seen=new Map();
+    map.forEach(b=>{ if(b.list.length<2) return; MERGE.buckets.push(b); b.list.forEach(e=>{ MERGE.entries.push(e); let w=seen.get(e.mat); if(!w){ w={m:e.mat,sig:sigOf(e.mat),list:[]}; seen.set(e.mat,w); MERGE.mats.push(w); } w.list.push(e); }); mergeBuild(b); });
+    tickers.push(()=>mergeWatch());
+  }catch(err){ console.warn('merge off',err); }
+}
+function mergeRelease(e){ if(e.dead) return; e.dead=true; e.m.layers.mask=e.mask; }
+function mergeBuild(b){
+  if(b.mesh){ if(b.mesh.parent) b.mesh.parent.remove(b.mesh); b.mesh.geometry.dispose(); b.mesh=null; }
+  const live=b.list.filter(e=>!e.dead);
+  if(live.length<2){ live.forEach(mergeRelease); return; }
+  let nv=0, ni=0; live.forEach(e=>{ const g=e.geo; nv+=g.attributes.position.count; ni+=g.index?g.index.count:g.attributes.position.count; });
+  const pos=new Float32Array(nv*3), nor=new Float32Array(nv*3), uv=new Float32Array(nv*2), idx=nv>65535?new Uint32Array(ni):new Uint16Array(ni);
+  const m4=new THREE.Matrix4(), n3=new THREE.Matrix3(), p=new THREE.Vector3(); let vo=0, io=0;
+  live.forEach(e=>{
+    const g=e.geo, PA=g.attributes.position, NA=g.attributes.normal, UA=g.attributes.uv, cnt=PA.count;
+    m4.fromArray(e.mw); n3.getNormalMatrix(m4); const flip=m4.determinant()<0;
+    for(let i=0;i<cnt;i++){ p.fromBufferAttribute(PA,i).applyMatrix4(m4); const o3=(vo+i)*3; pos[o3]=p.x; pos[o3+1]=p.y; pos[o3+2]=p.z;
+      if(NA){ p.fromBufferAttribute(NA,i).applyMatrix3(n3).normalize(); nor[o3]=p.x; nor[o3+1]=p.y; nor[o3+2]=p.z; }
+      if(UA){ uv[(vo+i)*2]=UA.getX(i); uv[(vo+i)*2+1]=UA.getY(i); } }
+    const I=g.index?g.index.array:null, n=I?I.length:cnt;
+    for(let j=0;j+2<n;j+=3){ const a=(I?I[j]:j)+vo, b1=(I?I[j+1]:j+1)+vo, c=(I?I[j+2]:j+2)+vo; idx[io++]=a; if(flip){ idx[io++]=c; idx[io++]=b1; } else { idx[io++]=b1; idx[io++]=c; } }
+    vo+=cnt; });
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.BufferAttribute(nor,3)); g.setAttribute('uv',new THREE.BufferAttribute(uv,2)); g.setIndex(new THREE.BufferAttribute(io<idx.length?idx.subarray(0,io):idx,1));
+  g.computeBoundingSphere();
+  const mesh=new THREE.Mesh(g,b.mat); mesh.name='merged'; mesh.matrixAutoUpdate=false;
+  (b.fl==null?(MERGE.root||(MERGE.root=(()=>{ const r=new THREE.Group(); r.name='merged'; scene.add(r); return r; })())):mergeFloorGroup(b.fl)).add(mesh); b.mesh=mesh;
+  live.forEach(e=>{ e.m.layers.set(31); });
+}
+function mergeWatch(){
+  const E=MERGE.entries, n=E.length; if(!n) return;
+  for(let k=0;k<Math.min(n,450);k++){
+    const e=E[MERGE.rr=(MERGE.rr+1)%n]; if(e.dead) continue;
+    const m=e.m; let dyn=!m.visible||m.material!==e.mat||m.geometry!==e.geo||m.parent!==(e.chain[0]||scene);
+    if(!dyn) for(let i=0;i<e.chain.length;i++){ const a=e.chain[i]; if(a.parent!==(e.chain[i+1]||scene)||(!a.visible&&!MERGE.fsg.has(a))){ dyn=true; break; } }
+    if(!dyn&&!mergeSame(e)) dyn=true;
+    if(dyn){ mergeRelease(e); MERGE.dirty.add(e.b); }
+  }
+  const W=MERGE.mats, nm=W.length;
+  for(let k=0;k<Math.min(nm,60);k++){ const w=W[MERGE.mr=(MERGE.mr+1)%nm]; if(w.done) continue; if(matSig(w.m)!==w.sig){ w.done=true; w.list.forEach(e=>{ if(!e.dead){ mergeRelease(e); MERGE.dirty.add(e.b); } }); } }
+  if(MERGE.dirty.size){ MERGE.dirty.forEach(b=>mergeBuild(b)); MERGE.dirty.clear(); }
+}
 /* Everything a game does to its 3D table (spin the wheel, deal a card, roll dice, drop a ball...) goes through
    its table hooks. While you're in a party those calls are recorded and sent to your friends, who replay them
    on the same table, so they see your game live. */
@@ -2921,13 +3022,16 @@ function buildDressUp(mx,X,Z,H){
   boxCollider(0,0,0,mx,mx+0.66,cz-1.0,cz+1.0);
   rebuildMe();
 }
-const _mv=new THREE.Vector2();
+const _mv=new THREE.Vector2(), _mfr=(typeof THREE!=='undefined'&&THREE.Frustum)?new THREE.Frustum():null, _mpm=(typeof THREE!=='undefined'&&THREE.Matrix4)?new THREE.Matrix4():null;
+function mirrorSeen(){ if(!_mfr||!mirror.mesh.geometry) return true; camera.updateMatrixWorld(); _mpm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse); _mfr.setFromProjectionMatrix(_mpm); return _mfr.intersectsObject(mirror.mesh); }
 function renderMirror(){
   if(!mirror||loc!=='lobby'||!renderer||!camera) return;
   const fx=-Math.sin(P.yaw), fz=-Math.cos(P.yaw), dx=mirror.mx-P.x, dz=mirror.mz-P.z;
   if(fx*dx+fz*dz<-1.5||Math.hypot(dx,dz)>13) return;
+  if(!mirrorSeen()) return;
+  if((mirror.fr=(mirror.fr||0)+1)%2) return;
   renderer.getDrawingBufferSize(_mv);
-  const w=Math.max(2,Math.floor(_mv.x)), h=Math.max(2,Math.floor(_mv.y));
+  const w=Math.max(2,Math.floor(_mv.x*0.6)), h=Math.max(2,Math.floor(_mv.y*0.6));
   if(mirror.rt.width!==w||mirror.rt.height!==h) mirror.rt.setSize(w,h);
   mirror.mat.uniforms.res.value.copy(_mv);
   const c=mirror.cam; c.fov=camera.fov; c.aspect=camera.aspect; c.near=camera.near; c.updateProjectionMatrix();
@@ -3488,10 +3592,11 @@ function setFloor(i){
   }
   wallMats.forEach((m,k)=>{ m.map=floorTex.wall[i][k]; m.needsUpdate=true; });
   scene.fog.color.setHex(F.fog); scene.background.setHex(F.fog);
-  roomLights.forEach(L=>L.color.setHex(F.light)); if(hemiLight) hemiLight.intensity=F.hemi||0.4;
+  roomLights.forEach(L=>L.color.setHex(F.light)); if(hemiLight) hemiLight.intensity=(F.hemi||0.4)*(RIG.pool.length?1.12:1);
   SIGN.text=F.sign; SIGN.sub=F.sub; if(mainSignTex) mainSignTex.userData.redraw();
   chipLabelTex.forEach(t=>t&&t.userData.redraw()); shopTags.forEach(t=>t.userData.redraw());
   floorStands.forEach(f=>{ const on=f.floor===i; f.g.visible=on; f.col.off=!on; });
+  MERGE.floors.forEach((g,k)=>{ if(g) g.visible=k===i; });
 }
 function resetAll(){
   unmountTable();
@@ -3541,7 +3646,28 @@ const GAMES={
   elevator:{title:'Elevator',build:buildElevator}
 };
 let mode='start', current=null;
-const BUILD_ID='2026-10-24-live';
+/* ---- download / install the game as an app (website link) ---- */
+let installEvt=null;
+function isStandalone(){ try{ return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true; }catch(_){ return false; } }
+function onWebsite(){ return /github\.io$/.test(location.hostname)||/^(localhost|127\.0\.0\.1)$/.test(location.hostname); }
+function renderInstall(){ const show=onWebsite()&&!isStandalone(); document.querySelectorAll('.install-btn').forEach(b=>{ b.hidden=!show; }); }
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installEvt=e; renderInstall(); });
+window.addEventListener('appinstalled',()=>{ installEvt=null; renderInstall(); try{ toast('Installed! Open Casino With Friends from your desktop or Start menu.','win'); }catch(_){} });
+function installHelpText(){
+  const ua=navigator.userAgent||'';
+  if(/iPhone|iPad|iPod/.test(ua)) return 'On iPhone or iPad: open this page in Safari, tap the Share button, then tap "Add to Home Screen".';
+  if(/Android/.test(ua)) return 'On Android: open this page in Chrome, tap the ⋮ menu, then "Install app" (or "Add to Home screen").';
+  if(/OPR\/|Opera|OPX/.test(ua)) return 'Opera can’t install apps. Open this game in Microsoft Edge or Chrome (Edge is already on every Windows PC), then click the install icon at the right end of the address bar. Tick "Create Desktop shortcut" and it goes on your desktop.';
+  if(/Firefox\//.test(ua)) return 'Firefox can’t install apps. Open this game in Microsoft Edge or Chrome, then click the install icon at the right end of the address bar.';
+  if(/Edg\//.test(ua)) return 'Click the install icon at the right end of the address bar (or ⋯ menu → Apps → Install this site as an app). Tick "Create Desktop shortcut" and it goes on your desktop.';
+  return 'Click the install icon at the right end of the address bar (a little screen with an arrow), or open the ⋮ menu and choose "Cast, save and share" → "Install page as app".';
+}
+async function doInstall(){
+  if(installEvt){ const ev=installEvt; installEvt=null; try{ ev.prompt(); const r=await ev.userChoice; if(r&&r.outcome==='accepted') toast('Installing… it will appear on your desktop and Start menu.','win'); }catch(_){ } renderInstall(); return; }
+  $('installHelpP').textContent=installHelpText(); $('installHelp').hidden=false; if(document.pointerLockElement) document.exitPointerLock();
+}
+if('serviceWorker' in navigator&&onWebsite()&&location.protocol!=='file:'){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
+const BUILD_ID='2026-10-27-app';
 (function autoUpdate(){
   if(!/github\.io$/.test(location.hostname)||!window.fetch) return;
   let tries=0; try{ tries=+(sessionStorage.getItem('cwfUpd')||0); }catch(_){}
@@ -4013,7 +4139,42 @@ function buildRoom(){
   });
 }
 const LIGHTS={casino:[],lobby:[],elev:[],pit:[],limo:[]};
-function setLocLights(){ const k=(loc==='casino'||loc==='lobby')?'casino':cut&&cut.kind==='elev'?'elev':cut&&cut.kind==='pit'?'pit':cut&&cut.kind==='limo'?'limo':null; for(const n in LIGHTS) LIGHTS[n].forEach(l=>{ l.visible=n===k; }); }
+const RIG={pool:[],defs:{},want:'casino',slots:[]};
+function rigName(){ return cut&&cut.kind==='elev'?'elev':cut&&cut.kind==='pit'?'pit':cut&&cut.kind==='limo'?'limo':loc==='lobby'?'lobby':'casino'; }
+function setLocLights(){
+  if(!RIG.pool.length){ const k=(loc==='casino'||loc==='lobby')?'casino':cut&&cut.kind==='elev'?'elev':cut&&cut.kind==='pit'?'pit':cut&&cut.kind==='limo'?'limo':null; for(const n in LIGHTS) LIGHTS[n].forEach(l=>{ l.visible=n===k; }); return; }
+  RIG.want=rigName(); const cutNow=RIG.want==='elev'||RIG.want==='pit'||RIG.want==='limo'; rigApply(cutNow);
+}
+function buildRig(){
+  // remember where every point light was, then swap them all for one pool of 6 lights
+  const all=[]; scene.traverse(o=>{ if(o.isPointLight) all.push(o); });
+  const at=l=>{ l.updateMatrixWorld(true); return new THREE.Vector3().setFromMatrixPosition(l.matrixWorld); };
+  const D=l=>({l,p:at(l)});
+  const near=(list,x,z)=>list.find(l=>{ const p=at(l); return Math.abs(p.x-x)<0.6&&Math.abs(p.z-z)<0.6; });
+  const C=LIGHTS.casino, always=all.filter(l=>!Object.values(LIGHTS).some(a=>a.includes(l)));
+  const ch=(x,z)=>near(C,x,z), pink=near(C,-RW/2+4,-2), cyan=near(C,RW/2-4,2);
+  const front=always.find(l=>at(l).z>RD/2), box=always.find(l=>l!==front);
+  const W=l=>l?Object.assign(D(l),{boost:1.18,dist:1.25}):null;
+  const SH=[W(ch(0,8)),W(ch(-5.5,3)),W(ch(5.5,3))], CY=W(cyan);
+  RIG.defs.casino=[...SH,W(ch(0,-10)),W(pink),CY];
+  RIG.defs.lobby=[...SH,front?D(front):null,box?D(box):null,CY];
+  ['elev','pit','limo'].forEach(n=>{ RIG.defs[n]=LIGHTS[n].slice(0,6).map(D); });
+  all.forEach(l=>{ if(l.parent) l.parent.remove(l); });
+  for(let i=0;i<6;i++){ const L=new THREE.PointLight(0xffffff,0,10,1.5); scene.add(L); RIG.pool.push(L); RIG.slots.push({def:null}); }
+  if(hemiLight) hemiLight.intensity=(FLOORS[state.floor||0].hemi||0.4)*1.12;
+  RIG.want=rigName(); rigApply(true);
+  tickers.push((t,dt)=>rigTick(dt));
+}
+function rigTarget(d){ return d?d.l.intensity*(d.boost||1):0; }
+function rigSet(i,d){ const L=RIG.pool[i]; RIG.slots[i].def=d; if(!d) return; L.color.copy(d.l.color); L.position.copy(d.p); L.distance=d.l.distance*(d.dist||1); L.decay=d.l.decay; }
+function rigApply(now){ const defs=RIG.defs[RIG.want]||[]; for(let i=0;i<6;i++){ const d=defs[i]||null; if(now||RIG.slots[i].def===d){ rigSet(i,d); RIG.pool[i].intensity=rigTarget(d); } } }
+function rigTick(dt){
+  // lights that change between places fade out, move, then fade in (no pop when you walk through the doors)
+  const defs=RIG.defs[RIG.want]||[];
+  for(let i=0;i<6;i++){ const L=RIG.pool[i], d=defs[i]||null, sl=RIG.slots[i];
+    if(sl.def!==d){ L.intensity=Math.max(0,L.intensity-dt*5); if(L.intensity<=0.001) rigSet(i,d); }
+    else { if(d) L.color.copy(d.l.color); const T=rigTarget(d); L.intensity+=(T-L.intensity)*Math.min(1,dt*6); } }
+}
 function buildLights(){
   hemiLight=new THREE.HemisphereLight(0xfff0f4,0x3a2034,0.3); scene.add(hemiLight);
   scene.add(new THREE.AmbientLight(0xffffff,0.05));
@@ -6146,6 +6307,7 @@ $('scene').addEventListener('touchstart',e=>{
 },{passive:true});
 
 const ray=typeof THREE!=='undefined'?new THREE.Raycaster():null, ndc=typeof THREE!=='undefined'?new THREE.Vector2():null;
+if(ray&&ray.layers&&ray.layers.enableAll) ray.layers.enableAll();
 function pickAt(cx,cy,list){
   list=list||clickTargets; if(!list.length||!camera||!ray) return null;
   const r=$('scene').getBoundingClientRect(); ndc.set((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1);
@@ -6438,6 +6600,10 @@ $('partyBtn').addEventListener('click',()=>{ menuPane('party'); partyWebLinks();
 $('tasksBtn').addEventListener('click',()=>menuPane('tasks'));
 $('micBtn').addEventListener('click',e=>{ e.stopPropagation(); setMic(!voice.want); });
 $('micMenuBtn').addEventListener('click',()=>setMic(!voice.want));
+['installBtn1','installBtn2'].forEach(id=>$(id).addEventListener('click',e=>{ e.stopPropagation(); doInstall(); }));
+$('installClose').addEventListener('click',()=>{ $('installHelp').hidden=true; });
+$('installCopy').addEventListener('click',()=>{ const u=location.origin+location.pathname; try{ navigator.clipboard.writeText(u).then(()=>toast('Link copied! Paste it into Edge or Chrome.','win')).catch(()=>toast(u)); }catch(_){ toast(u); } });
+renderInstall();
 $('backBtnT').addEventListener('click',()=>menuPane('main'));
 $('partyCreate').addEventListener('click',()=>createParty());
 $('partyCodeIn').addEventListener('input',partyWebLinks);
@@ -6553,7 +6719,7 @@ async function boot(data){
   $('soundBtn').textContent=state.sound?'Sound on':'Sound off'; $('soundBtn').setAttribute('aria-pressed',String(state.sound));
   if(typeof THREE==='undefined'){ showFallback('The 3D floor could not load.'); requestAnimationFrame(loop); return; }
   try{
-    renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,logarithmicDepthBuffer:true,powerPreference:'high-performance'});
+    renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,powerPreference:'high-performance'});
   }catch(e){ renderer=null; }
   if(!renderer){ showFallback('This device cannot draw the 3D floor.'); requestAnimationFrame(loop); return; }
   maxPxr=Math.min(window.devicePixelRatio||1,1.5); pxr=maxPxr; renderer.setPixelRatio(pxr);
@@ -6566,7 +6732,7 @@ async function boot(data){
   try{
     await Promise.race([Promise.all([document.fonts.load('60px Limelight'),document.fonts.load('700 40px Archivo')]),sleep(1800)]);
   }catch(e){}
-  try{ buildWorld(); world=true; setFloor(state.inRun?Math.min(state.floor||0,FLOORS.length-1):0); syncShopItems(); }
+  try{ buildWorld(); world=true; setFloor(state.inRun?Math.min(state.floor||0,FLOORS.length-1):0); syncShopItems(); try{ buildRig(); }catch(e){ console.warn('rig',e); } setTimeout(mergeStart,600); setTimeout(mergeFinish,2600); }
   catch(err){ console.error(err); world=false; showFallback('The 3D floor hit a problem ('+((err&&err.message)||'unknown')+').'); requestAnimationFrame(loop); return; }
   if(state.inRun&&!state.between){ loc='casino'; teleport(0,RD/2-2.5,0); } else { loc='lobby'; teleport(LSP.x,LSP.z,0); }
   renderCash(); renderDay();
