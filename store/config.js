@@ -15,9 +15,11 @@ window.STORE = {
 
   // OPTIONAL - automatic Apple Pay / card / delivery later: your Tebex PUBLIC token (Tebex panel -> Integrations -> Webstore token / Headless API).
   // Leave "" to only show PayPal.
-  tebexToken: "",
+  tebexToken: "1537h-ca95b0fc6559e63eb56f3118e095a2800fd0d953",
+  // false = buyers still pay with the PayPal QR code. Set to true once Tebex has APPROVED the store.
+  tebexLive: false,
 
-  // Each product: tebexPackage = the package ID (or ident) from the Tebex panel.
+  // tebexPackage: leave "" - the site finds the package in Tebex by its name (names must match).
   ranks: [
     {
       id: "crator_plus", name: "Crator+", color: "#55ffff", price: 3.00, length: "30 days",

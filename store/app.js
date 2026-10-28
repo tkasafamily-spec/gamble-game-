@@ -4,7 +4,8 @@
   const $$ = (q) => [...document.querySelectorAll(q)];
   const money = (n) => "$" + n.toFixed(2) + (S.currency === "USD" ? " USD" : " " + S.currency);
   const short = (n) => (n < 1 ? Math.round(n * 100) + "c" : "$" + (n % 1 ? n.toFixed(2) : n));
-  const TEBEX = !!S.tebexToken;
+  const TEBEX = !!S.tebexToken && S.tebexLive === true;   // Tebex checkout (Apple Pay / card / PayPal, automatic delivery)
+  const STATS = !!S.tebexToken;                            // leaderboard + profile
   if (!TEBEX) document.querySelectorAll(".needs-tebex").forEach((e) => e.remove());
 
   const crown = (c) => `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 16l9 8 9-14 9 14 9-8-4 22H10z" fill="${c}" fill-opacity=".22" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="6" cy="15" r="3" fill="${c}"/><circle cx="24" cy="9" r="3" fill="${c}"/><circle cx="42" cy="15" r="3" fill="${c}"/><path d="M12 33h24" stroke="${c}" stroke-width="2.5"/></svg>`;
@@ -150,6 +151,36 @@
     step(3);
   };
 
+
+  // ---------- Tebex helpers ----------
+  const API = `https://headless.tebex.io/api/accounts/${S.tebexToken}`;
+  const norm = (t) => String(t || "").toLowerCase().replace(/\s+/g, " ").trim();
+  let pkgList = null;
+  async function packageId(item) {
+    if (item.tebexPackage) return item.tebexPackage;
+    if (!pkgList) { const r = await fetch(`${API}/packages`); const j = await r.json(); pkgList = j.data || []; }
+    const hit = pkgList.find((p) => norm(p.name) === norm(item.name));
+    return hit ? hit.id : null;
+  }
+  async function addToBasket(ident, pkg, qty) {
+    const r = await fetch(`https://headless.tebex.io/api/baskets/${ident}/packages`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ package_id: pkg, quantity: qty })
+    });
+    const j = await r.json().catch(() => ({}));
+    return { ok: r.ok, data: j.data, msg: j.detail || j.message || "Couldn't add item" };
+  }
+  function launch(ident, d2, d1) {
+    if (window.Tebex && Tebex.checkout) {
+      close();
+      Tebex.checkout.init({ ident, theme: "dark", colors: [{ name: "primary", color: "#b46cff" }] });
+      Tebex.checkout.on("payment:complete", () => showDone("Payment went through!", "Thanks! " + (order.user || "You") + " is getting " + ($("#sItem").textContent || "it") + " in-game now (within a minute). Make sure you're online."));
+      Tebex.checkout.launch();
+    } else {
+      location.href = (d2 && d2.links && d2.links.checkout) || (d1 && d1.links && d1.links.checkout);
+    }
+  }
+
   // step 3 - pay
   function showDone(title, text) {
     $("#doneTitle").textContent = title; $("#doneText").textContent = text; step(4); $("#modal").hidden = false;
@@ -164,31 +195,28 @@
       showDone("Almost done!", "Open a ticket in our Discord (#tickets) and send a screenshot of your PayPal payment with your order code " + order.code + ". Staff will give " + order.user + " the " + $("#sItem").textContent + " in-game.");
       return;
     }
-    if (!order.item.tebexPackage) { err.textContent = "This item isn't set up yet. Please try again later."; err.hidden = false; return; }
     btn.disabled = true; btn.textContent = "Opening secure checkout…";
     try {
+      const pkg = await packageId(order.item);
+      if (!pkg) throw new Error("this item isn't set up in the store yet");
       const page = location.href.split(/[?#]/)[0];
-      const r1 = await fetch(`https://headless.tebex.io/api/accounts/${S.tebexToken}/baskets`, {
+      const r1 = await fetch(`${API}/baskets`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ complete_url: page + "?paid=" + encodeURIComponent(order.user), cancel_url: page, complete_auto_redirect: true, username: order.user })
       });
       const b1 = await r1.json();
       if (!r1.ok) throw new Error(b1.detail || b1.message || "Couldn't start checkout");
       const ident = b1.data.ident;
-      const r2 = await fetch(`https://headless.tebex.io/api/baskets/${ident}/packages`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ package_id: order.item.tebexPackage, quantity: order.qty })
-      });
-      const b2 = await r2.json();
-      if (!r2.ok) throw new Error(b2.detail || b2.message || "Couldn't add item");
-      if (window.Tebex && Tebex.checkout) {
-        close();
-        Tebex.checkout.init({ ident, theme: "dark", colors: [{ name: "primary", color: "#b46cff" }] });
-        Tebex.checkout.on("payment:complete", () => showDone("Payment went through!", "Thanks! " + order.user + " is getting " + $("#sItem").textContent + " in-game now (within a minute). Make sure you're online."));
-        Tebex.checkout.launch();
-      } else {
-        location.href = (b2.data && b2.data.links && b2.data.links.checkout) || (b1.data.links && b1.data.links.checkout);
+      const added = await addToBasket(ident, pkg, order.qty);
+      if (!added.ok) {
+        // Tebex wants the player to confirm their Minecraft name first - send them there and come back
+        const ra = await fetch(`${API}/baskets/${ident}/auth?returnUrl=` + encodeURIComponent(page + "?basket=" + ident + "&pkg=" + pkg + "&qty=" + order.qty + "&u=" + encodeURIComponent(order.user)));
+        const links = await ra.json();
+        const url = Array.isArray(links) ? links[0] && links[0].url : links.data && links.data[0] && links.data[0].url;
+        if (!url) throw new Error(added.msg);
+        location.href = url; return;
       }
+      launch(ident, added.data, b1.data);
     } catch (e) {
       err.textContent = "Something went wrong: " + e.message; err.hidden = false;
     } finally {
@@ -219,7 +247,7 @@
   // purchases come from Tebex (every real payment). Cached for 60 seconds.
   let cache = null, cacheAt = 0;
   async function spenders() {
-    if (!TEBEX) return null;
+    if (!STATS) return null;
     if (cache && Date.now() - cacheAt < 60000) return cache;
     const r = await fetch(`https://headless.tebex.io/api/accounts/${S.tebexToken}/sidebar`);
     const j = await r.json();
@@ -244,7 +272,7 @@
 
   async function renderTop() {
     const box = $("#topList");
-    if (!TEBEX) { box.innerHTML = notYet("The leaderboard"); return; }
+    if (!STATS) { box.innerHTML = notYet("The leaderboard"); return; }
     box.innerHTML = '<p class="muted center">Loading…</p>';
     try {
       const { list, top } = await spenders();
@@ -266,7 +294,7 @@
     if (!NAME.test(name)) { box.innerHTML = '<p class="err center">That doesn\'t look like a Minecraft username.</p>'; return; }
     saveName(name);
     let me = null, pos = null;
-    if (TEBEX) {
+    if (STATS) {
       box.innerHTML = '<p class="muted center">Loading…</p>';
       try { const { list } = await spenders(); const i = list.findIndex((p) => p.name.toLowerCase() === name.toLowerCase()); if (i >= 0) { me = list[i]; pos = i + 1; } } catch (e) {}
     }
@@ -277,16 +305,26 @@
         <div class="prof-main">
           <h3>${esc(name)}</h3>
           <div class="stats">
-            <div><small>Money spent</small><b>${TEBEX ? money(me ? me.total : 0) : "—"}</b></div>
-            <div><small>Purchases</small><b>${TEBEX ? (me ? me.count : 0) : "—"}</b></div>
+            <div><small>Money spent</small><b>${STATS ? money(me ? me.total : 0) : "—"}</b></div>
+            <div><small>Purchases</small><b>${STATS ? (me ? me.count : 0) : "—"}</b></div>
             <div><small>Leaderboard</small><b>${pos ? "#" + pos : "—"}</b></div>
           </div>
         </div>
       </div>
-      ${TEBEX ? (items.length ? `<p class="label">Recent purchases</p><ul class="hist">${items.map((it) => `<li><b>${esc(it.name || "Item")}</b><span>${it.at ? new Date(it.at).toLocaleDateString() : ""}</span><span class="amt">${money(it.price)}</span></li>`).join("")}</ul>` : '<p class="muted center">No purchases yet. Pick something from the store!</p>') : notYet("Money spent tracking")}`;
+      ${STATS ? (items.length ? `<p class="label">Recent purchases</p><ul class="hist">${items.map((it) => `<li><b>${esc(it.name || "Item")}</b><span>${it.at ? new Date(it.at).toLocaleDateString() : ""}</span><span class="amt">${money(it.price)}</span></li>`).join("")}</ul>` : '<p class="muted center">No purchases yet. Pick something from the store!</p>') : notYet("Money spent tracking")}`;
   }
   $("#profGo").onclick = () => renderProfile();
   $("#profName").addEventListener("keydown", (e) => { if (e.key === "Enter") renderProfile(); });
+
+  // back from Tebex username confirmation: add the item and open checkout
+  const qp = new URLSearchParams(location.search);
+  if (TEBEX && qp.get("basket")) {
+    history.replaceState(null, "", location.pathname);
+    order.user = qp.get("u") || ""; $("#sItem").textContent = "";
+    addToBasket(qp.get("basket"), qp.get("pkg"), +qp.get("qty") || 1).then((a) => {
+      if (a.ok) launch(qp.get("basket"), a.data, null); else toast("Something went wrong: " + a.msg);
+    });
+  }
 
   // back from the full-page checkout
   const paid = new URLSearchParams(location.search).get("paid");
