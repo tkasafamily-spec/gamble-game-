@@ -6,7 +6,7 @@
   const short = (n) => (n < 1 ? Math.round(n * 100) + "c" : "$" + (n % 1 ? n.toFixed(2) : n));
   const TEBEX = !!S.tebexToken && S.tebexLive === true;   // Tebex checkout (Apple Pay / card / PayPal, automatic delivery)
   const STATS = !!S.tebexToken;                            // leaderboard + profile
-  if (!TEBEX) document.querySelectorAll(".needs-tebex").forEach((e) => e.remove());
+  if (!S.tebexToken) document.querySelectorAll(".needs-tebex").forEach((e) => e.remove());
 
   const crown = (c) => `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 16l9 8 9-14 9 14 9-8-4 22H10z" fill="${c}" fill-opacity=".22" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="6" cy="15" r="3" fill="${c}"/><circle cx="24" cy="9" r="3" fill="${c}"/><circle cx="42" cy="15" r="3" fill="${c}"/><path d="M12 33h24" stroke="${c}" stroke-width="2.5"/></svg>`;
   const key = (c) => `<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="15" cy="24" r="9" fill="${c}" fill-opacity=".22" stroke="${c}" stroke-width="2.5"/><circle cx="15" cy="24" r="3" fill="${c}"/><path d="M24 24h18M36 24v7M42 24v5" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/></svg>`;
@@ -218,7 +218,9 @@
       }
       launch(ident, added.data, b1.data);
     } catch (e) {
-      err.textContent = "Something went wrong: " + e.message; err.hidden = false;
+      err.textContent = TEBEX ? "Something went wrong: " + e.message
+        : "Card and Apple Pay are being switched on right now - please use PayPal for the moment (press Back).";
+      err.hidden = false;
     } finally {
       btn.disabled = false; btn.innerHTML = 'Pay <span id="payAmt">' + short(+total().toFixed(2)) + "</span>";
     }
