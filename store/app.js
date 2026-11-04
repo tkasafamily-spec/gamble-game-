@@ -252,38 +252,42 @@
     if (cache && Date.now() - cacheAt < 60000) return cache;
     const r = await fetch(`https://headless.tebex.io/api/accounts/${S.tebexToken}/sidebar`);
     const j = await r.json();
-    const people = {}; let top = null;
+    const people = {}; let top = null, hasPrice = false;
     for (const m of j.data || []) {
       if (m.type === "recent_payments") {
         for (const p of (m.data && m.data.payments) || []) {
           const k = p.username.toLowerCase();
           const e = people[k] || (people[k] = { name: p.username, total: 0, count: 0, items: [] });
+          if (p.price != null) hasPrice = true;
           e.total += parseFloat(p.price) || 0; e.count++;
           e.items.push({ name: p.package && p.package.name, price: parseFloat(p.price) || 0, at: p.created_at });
         }
       }
       if (m.type === "top_customer" && m.data) top = { name: m.data.username, total: parseFloat(m.data.total) || null, header: m.data.header };
     }
-    const list = Object.values(people).sort((a, b) => b.total - a.total);
-    cache = { list, top }; cacheAt = Date.now();
+    const list = Object.values(people).sort((a, b) => b.total - a.total || b.count - a.count);
+    cache = { list, top, hasPrice }; cacheAt = Date.now();
     return cache;
   }
 
   const notYet = (what) => `<div class="empty"><div class="empty-ic">★</div><h3>${what} is almost here</h3><p class="muted">It switches on as soon as automatic payments (Tebex) are connected. Every purchase will count.</p></div>`;
+
+  // Tebex only sends amounts if the Recent Payments module is set to show them - otherwise show how many buys
+  const amt = (p, hasPrice) => hasPrice ? money(p.total) : p.count + (p.count === 1 ? " purchase" : " purchases");
 
   async function renderTop() {
     const box = $("#topList");
     if (!STATS) { box.innerHTML = notYet("The leaderboard"); return; }
     box.innerHTML = '<p class="muted center">Loading…</p>';
     try {
-      const { list, top } = await spenders();
+      const { list, top, hasPrice } = await spenders();
       if (!list.length && !top) { box.innerHTML = `<div class="empty"><div class="empty-ic">★</div><h3>No purchases yet</h3><p class="muted">Be the first on the board!</p></div>`; return; }
       const pod = list.slice(0, 3);
       const order3 = [pod[1], pod[0], pod[2]];
       box.innerHTML =
         (top ? `<div class="topcust"><img src="${head(top.name, 40)}" alt="" width="40" height="40"><div><small>${esc(top.header || "Top customer")}</small><b>${esc(top.name)}</b></div>${top.total ? `<span>${money(top.total)}</span>` : ""}</div>` : "") +
-        `<div class="podium">${order3.map((p, i) => p ? `<div class="pod p${[2, 1, 3][i]}"><img src="${body(p.name, 120)}" alt="" loading="lazy"><div class="pod-base"><span class="pos">#${[2, 1, 3][i]}</span><b>${esc(p.name)}</b><span>${money(p.total)}</span></div></div>` : '<div class="pod empty-pod"></div>').join("")}</div>` +
-        `<ol class="board">${list.slice(3, 50).map((p, i) => `<li><span class="pos">#${i + 4}</span><img src="${head(p.name, 32)}" alt="" width="32" height="32" loading="lazy"><b>${esc(p.name)}</b><span class="amt">${money(p.total)}</span></li>`).join("")}</ol>`;
+        `<div class="podium">${order3.map((p, i) => p ? `<div class="pod p${[2, 1, 3][i]}"><img src="${body(p.name, 120)}" alt="" loading="lazy"><div class="pod-base"><span class="pos">#${[2, 1, 3][i]}</span><b>${esc(p.name)}</b><span>${amt(p, hasPrice)}</span></div></div>` : '<div class="pod empty-pod"></div>').join("")}</div>` +
+        `<ol class="board">${list.slice(3, 50).map((p, i) => `<li><span class="pos">#${i + 4}</span><img src="${head(p.name, 32)}" alt="" width="32" height="32" loading="lazy"><b>${esc(p.name)}</b><span class="amt">${amt(p, hasPrice)}</span></li>`).join("")}</ol>`;
     } catch (e) { box.innerHTML = '<p class="muted center">Couldn\'t load the leaderboard right now.</p>'; }
   }
 
@@ -294,10 +298,10 @@
     if (!name) { box.innerHTML = '<p class="muted center">Type your Minecraft username to see your profile.</p>'; return; }
     if (!NAME.test(name)) { box.innerHTML = '<p class="err center">That doesn\'t look like a Minecraft username.</p>'; return; }
     saveName(name);
-    let me = null, pos = null;
+    let me = null, pos = null, hasPrice = false;
     if (STATS) {
       box.innerHTML = '<p class="muted center">Loading…</p>';
-      try { const { list } = await spenders(); const i = list.findIndex((p) => p.name.toLowerCase() === name.toLowerCase()); if (i >= 0) { me = list[i]; pos = i + 1; } } catch (e) {}
+      try { const d = await spenders(); const list = d.list; hasPrice = d.hasPrice; const i = list.findIndex((p) => p.name.toLowerCase() === name.toLowerCase()); if (i >= 0) { me = list[i]; pos = i + 1; } } catch (e) {}
     }
     const items = me ? me.items.slice(0, 10) : [];
     box.innerHTML = `
@@ -306,13 +310,13 @@
         <div class="prof-main">
           <h3>${esc(name)}</h3>
           <div class="stats">
-            <div><small>Money spent</small><b>${STATS ? money(me ? me.total : 0) : "—"}</b></div>
+            <div><small>Money spent</small><b>${STATS && hasPrice ? money(me ? me.total : 0) : "—"}</b></div>
             <div><small>Purchases</small><b>${STATS ? (me ? me.count : 0) : "—"}</b></div>
             <div><small>Leaderboard</small><b>${pos ? "#" + pos : "—"}</b></div>
           </div>
         </div>
       </div>
-      ${STATS ? (items.length ? `<p class="label">Recent purchases</p><ul class="hist">${items.map((it) => `<li><b>${esc(it.name || "Item")}</b><span>${it.at ? new Date(it.at).toLocaleDateString() : ""}</span><span class="amt">${money(it.price)}</span></li>`).join("")}</ul>` : '<p class="muted center">No purchases yet. Pick something from the store!</p>') : notYet("Money spent tracking")}`;
+      ${STATS ? (items.length ? `<p class="label">Recent purchases</p><ul class="hist">${items.map((it) => `<li><b>${esc(it.name || "Item")}</b><span>${it.at ? new Date(it.at).toLocaleDateString() : ""}</span><span class="amt">${hasPrice ? money(it.price) : ""}</span></li>`).join("")}</ul>` : '<p class="muted center">No purchases yet. Pick something from the store!</p>') : notYet("Money spent tracking")}`;
   }
   $("#profGo").onclick = () => renderProfile();
   $("#profName").addEventListener("keydown", (e) => { if (e.key === "Enter") renderProfile(); });
