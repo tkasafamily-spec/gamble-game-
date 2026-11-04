@@ -273,3 +273,13 @@ body { padding-bottom: 84px; }
   .stats { grid-template-columns: 1fr; }
   .pod img { height: 110px; } .pod.p1 img { height: 135px; }
 }
+
+/* sign in / sign up */
+.acct { display: flex; align-items: center; gap: 8px; }
+.btn.sm { padding: 8px 14px; font-size: 14px; border-radius: 10px; }
+.me { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 4px 12px 4px 4px; font: 600 14px Inter, sans-serif; cursor: pointer; }
+.me img { border-radius: 6px; image-rendering: pixelated; }
+.sheet.auth h3 { margin: 0 0 4px; font-size: 24px; }
+.sheet.auth .user { margin-top: 18px; }
+#authSwap { color: var(--accent); }
+@media (max-width: 640px) { .top nav { display: none; } .me span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; } }

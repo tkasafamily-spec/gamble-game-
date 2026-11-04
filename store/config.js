@@ -17,31 +17,31 @@ window.STORE = {
   // Leave "" to only show PayPal.
   tebexToken: "1537h-ca95b0fc6559e63eb56f3118e095a2800fd0d953",
   // false = buyers still pay with the PayPal QR code. Set to true once Tebex has APPROVED the store.
-  tebexLive: false,
+  tebexLive: true,
 
   // tebexPackage: leave "" - the site finds the package in Tebex by its name (names must match).
   ranks: [
     {
       id: "crator_plus", name: "Crator+", color: "#55ffff", price: 3.00, length: "30 days",
-      tebexPackage: "",
+      tebexPackage: "7774506",
       perks: ["15 homes", "2x crystals in AFK", "Crystals no matter where you are", "Fly at spawn", "Netherite Crystal Gear on respawn"]
     },
     {
       id: "crator_plus_plus", name: "Crator++", color: "#55aaff", price: 6.00, length: "30 days", popular: true,
-      tebexPackage: "",
+      tebexPackage: "7774520",
       perks: ["30 homes", "2x crystals in AFK", "Crystals no matter where you are", "Fly at spawn", "Netherite Crystal Gear on respawn", "/ec - ender chest anywhere"]
     },
     {
       id: "crator_plus_plus_plus", name: "Crator+++", color: "#3b82f6", price: 12.00, length: "30 days",
-      tebexPackage: "",
+      tebexPackage: "7774526",
       perks: ["60 homes", "2x crystals in AFK", "Crystals no matter where you are", "Fly at spawn", "Netherite Crystal Gear on respawn", "/ec - ender chest anywhere"]
     }
   ],
 
   keys: [
-    { id: "excavator", name: "Excavator Key", color: "#f5a524", price: 0.65, tebexPackage: "", blurb: "Open the Excavator Crate at spawn" },
-    { id: "crystal",   name: "Crystal Key",   color: "#d48cff", price: 0.50, tebexPackage: "", blurb: "Open the Crystal Crate at spawn" },
-    { id: "sky",       name: "Fly Key",       color: "#7dd3fc", price: 0.40, tebexPackage: "", blurb: "Open the Fly Crate - 16 skeleton spawners per key" }
+    { id: "excavator", name: "Excavator Key", color: "#f5a524", price: 0.65, tebexPackage: "7774529", blurb: "Open the Excavator Crate at spawn" },
+    { id: "crystal",   name: "Crystal Key",   color: "#d48cff", price: 0.50, tebexPackage: "7774538", blurb: "Open the Crystal Crate at spawn" },
+    { id: "sky",       name: "Fly Key",       color: "#7dd3fc", price: 0.40, tebexPackage: "7774540", blurb: "Open the Fly Crate - 16 skeleton spawners per key" }
   ],
 
   freeStuff: [

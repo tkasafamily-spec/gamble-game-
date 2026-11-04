@@ -87,12 +87,11 @@
     $("#mTitle").textContent = it.name; $("#mTitle").style.color = it.color;
     $("#mSub").textContent = kind === "rank" ? "Rank · " + (it.length || "") : short(it.price) + " each";
     $("#qtyWrap").hidden = kind !== "key";
-    $$(".method").forEach((m) => m.classList.remove("sel"));
-    $("#toStep2").disabled = true;
-    if ($$(".method").length === 1) $(".method").click();
+    $("#progAmt").hidden = kind !== "key";
     $("#userErr").hidden = true; $("#payErr").hidden = true;
-    setQty(kind === "key" ? cardQty(i) : 1); step(1);
+    setQty(kind === "key" ? cardQty(i) : 1);
     $("#modal").hidden = false;
+    if (kind === "key") step(1); else toUsername();
   }
   const close = () => ($("#modal").hidden = true);
 
@@ -110,13 +109,19 @@
   $$("[data-set]").forEach((b) => (b.onclick = () => setQty(+b.dataset.set)));
   $("#qty").oninput = (e) => setQty(+e.target.value);
 
-  // step 1 - payment method
-  $$(".method").forEach((m) => (m.onclick = () => {
-    $$(".method").forEach((x) => x.classList.remove("sel"));
-    m.classList.add("sel"); order.method = m.dataset.m; $("#toStep2").disabled = false;
+  // after the amount: signed in -> straight to pay, otherwise ask for the username
+  function toUsername() {
+    const me = signedIn();
+    if (me) { $("#username").value = me; $("#toStep3").click(); return; }
+    step(2); setTimeout(() => $("#username").focus(), 50);
+  }
+  $("#toStep2").onclick = toUsername;
+  $$("[data-back]").forEach((b) => (b.onclick = () => {
+    let n = +b.dataset.back;
+    if (n === 2 && signedIn()) n = 1;
+    if (n === 1 && order.kind !== "key") return close();
+    step(n);
   }));
-  $("#toStep2").onclick = () => { step(2); setTimeout(() => $("#username").focus(), 50); };
-  $$("[data-back]").forEach((b) => (b.onclick = () => step(+b.dataset.back)));
 
   // step 2 - username
   const NAME = /^\.?[A-Za-z0-9_]{3,16}$/;
@@ -133,21 +138,8 @@
     $("#userErr").hidden = true; order.user = v;
     $("#sItem").textContent = (order.kind === "key" ? order.qty + " × " : "") + order.item.name;
     $("#sUser").textContent = v; $("#sUser2").textContent = v;
-    $("#sMethod").textContent = METHODS[order.method];
     $("#sTotal").textContent = money(total());
-    $("#payAmt").textContent = short(+total().toFixed(2));
-    const pp = !TEBEX && order.method === "paypal" && S.paypal && S.paypal.link;
-    if (!pp) $("#payBtn").innerHTML = 'Pay <span id="payAmt">' + short(+total().toFixed(2)) + "</span>";
-    $("#ppBox").hidden = !pp; $("#tebexHint").hidden = !!pp;
-    if (pp) {
-      order.code = "CS-" + Math.random().toString(36).slice(2, 7).toUpperCase();
-      $("#ppAmt").textContent = money(total());
-      $("#ppName").textContent = S.paypal.name;
-      $("#ppOpen").href = S.paypal.link;
-      $("#ppCode").textContent = order.code;
-      $("#ppNoteText").textContent = order.code + " | " + (order.kind === "key" ? order.qty + "x " : "") + order.item.name + " | " + v;
-      $("#payBtn").textContent = "I've sent the payment";
-    }
+    $("#payBtn").innerHTML = 'Pay <span id="payAmt">' + short(+total().toFixed(2)) + "</span>";
     step(3);
   };
 
@@ -186,15 +178,10 @@
     $("#doneTitle").textContent = title; $("#doneText").textContent = text; step(4); $("#modal").hidden = false;
   }
   $("#doneBtn").onclick = close;
-  $("#ppNote").onclick = () => { navigator.clipboard?.writeText($("#ppNoteText").textContent); toast("Note copied!"); };
 
   $("#payBtn").onclick = async () => {
     const btn = $("#payBtn"); const err = $("#payErr"); err.hidden = true;
     saveName(order.user);
-    if (!TEBEX && order.method === "paypal" && S.paypal && S.paypal.link) {
-      showDone("Almost done!", "Open a ticket in our Discord (#tickets) and send a screenshot of your PayPal payment with your order code " + order.code + ". Staff will give " + order.user + " the " + $("#sItem").textContent + " in-game.");
-      return;
-    }
     btn.disabled = true; btn.textContent = "Opening secure checkout…";
     try {
       const pkg = await packageId(order.item);
@@ -317,6 +304,40 @@
   }
   $("#profGo").onclick = () => renderProfile();
   $("#profName").addEventListener("keydown", (e) => { if (e.key === "Enter") renderProfile(); });
+
+
+  // ---------- sign in / sign up (remembers your Minecraft name on this device) ----------
+  function signedIn() { const n = store.get("cs-name"); return n && NAME.test(n) ? n : null; }
+  function renderAcct() {
+    const me = signedIn(), box = $("#acct");
+    box.innerHTML = me
+      ? `<button type="button" class="me" id="meBtn"><img src="${head(me, 28)}" alt="" width="28" height="28"><span>${esc(me)}</span></button><button type="button" class="btn ghost sm" id="signOut">Sign out</button>`
+      : `<button type="button" class="btn ghost sm" data-auth="in">Sign in</button><button type="button" class="btn sm" data-auth="up">Sign up</button>`;
+    if (me) { $("#meBtn").onclick = () => show("profile"); $("#signOut").onclick = () => { try { localStorage.removeItem("cs-name"); } catch (e) {} renderAcct(); toast("Signed out"); }; }
+  }
+  let authMode = "in";
+  function openAuth(mode) {
+    authMode = mode;
+    $("#authTitle").textContent = mode === "up" ? "Sign up" : "Sign in";
+    $("#authGo").textContent = mode === "up" ? "Create account" : "Sign in";
+    $("#authSwap").textContent = mode === "up" ? "Already signed up? Sign in" : "New here? Sign up";
+    $("#authErr").hidden = true; $("#authName").value = ""; $("#authHead").src = "";
+    $("#authModal").hidden = false; setTimeout(() => $("#authName").focus(), 50);
+  }
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-auth]"); if (b) openAuth(b.dataset.auth); });
+  $("#authClose").onclick = () => ($("#authModal").hidden = true);
+  $("#authModal").addEventListener("click", (e) => { if (e.target.id === "authModal") $("#authModal").hidden = true; });
+  $("#authSwap").onclick = (e) => { e.preventDefault(); openAuth(authMode === "up" ? "in" : "up"); };
+  let aT;
+  $("#authName").addEventListener("input", (e) => { const v = e.target.value.trim(); clearTimeout(aT); aT = setTimeout(() => { $("#authHead").src = NAME.test(v) ? head(v, 48) : ""; }, 350); });
+  $("#authName").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#authGo").click(); });
+  $("#authGo").onclick = () => {
+    const v = $("#authName").value.trim();
+    if (!NAME.test(v)) { $("#authErr").textContent = "That doesn't look like a Minecraft username (3-16 letters, numbers or _)."; $("#authErr").hidden = false; return; }
+    saveName(v); renderAcct(); $("#authModal").hidden = true;
+    toast((authMode === "up" ? "Welcome, " : "Signed in as ") + v + "!");
+  };
+  renderAcct();
 
   // back from Tebex username confirmation: add the item and open checkout
   const qp = new URLSearchParams(location.search);
