@@ -247,9 +247,28 @@
 
   // purchases come from Tebex (every real payment). Cached for 60 seconds.
   let cache = null, cacheAt = 0;
+
+  async function serverSpenders() {
+    const T = S.topSpenders; if (!T || !T.topic) return null;
+    const txt = await fetch(`https://ntfy.sh/${T.topic}/json?poll=1&since=latest`, { cache: "no-store" }).then((r) => r.text());
+    const line = txt.trim().split("\n").filter(Boolean).pop(); if (!line) return null;
+    const msg = JSON.parse(line).message || ""; const cut = msg.lastIndexOf("\n"); if (cut < 0) return null;
+    const body = msg.slice(0, cut), sigB64 = msg.slice(cut + 1).trim();
+    const key = await crypto.subtle.importKey("spki", Uint8Array.from(atob(T.publicKey), (c) => c.charCodeAt(0)), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+    const ok = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, Uint8Array.from(atob(sigB64), (c) => c.charCodeAt(0)), new TextEncoder().encode(body));
+    if (!ok) return null;
+    const d = JSON.parse(body);
+    const list = (d.top || []).map(([name, total, count]) => ({ name, total: +total, count: +count, items: [] }));
+    const byName = {}; list.forEach((p) => (byName[p.name.toLowerCase()] = p));
+    for (const [name, pkg, amount, date] of d.recent || []) { const p = byName[String(name).toLowerCase()]; if (p) p.items.push({ name: pkg, price: +amount, at: date }); }
+    return { list, top: null, hasPrice: true };
+  }
+
   async function spenders() {
     if (!STATS) return null;
     if (cache && Date.now() - cacheAt < 60000) return cache;
+    // 1) real amounts from the server (signed list); 2) fall back to Tebex's public list (names only)
+    try { const real = await serverSpenders(); if (real) { cache = real; cacheAt = Date.now(); return cache; } } catch (e) { /* use fallback */ }
     const r = await fetch(`https://headless.tebex.io/api/accounts/${S.tebexToken}/sidebar`);
     const j = await r.json();
     const people = {}; let top = null, hasPrice = false;

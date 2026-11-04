@@ -7,6 +7,12 @@ window.STORE = {
   discord: "",                // e.g. "https://discord.gg/xxxx" (leave "" to hide the button)
   currency: "USD",
 
+  // Real top spenders: posted (signed) by the SMPCore plugin from Tebex's payment list every 5 minutes.
+  topSpenders: {
+    topic: "cratorsmp-top-3f8af77a0211e2e5",
+    publicKey: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEal2nYNJljpZJj1n0aYyAcyI5MZSbvTaztTmAXCyq4Ng2MviITVnCinqpKIkJqwv5wc8E03hGN+BzvktT+xw9ag=="
+  },
+
 
   // PayPal: players scan the QR / open this link, send the money, then open a Discord ticket with a screenshot.
   paypal: {
