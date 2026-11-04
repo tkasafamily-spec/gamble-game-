@@ -283,3 +283,9 @@ body { padding-bottom: 84px; }
 .sheet.auth .user { margin-top: 18px; }
 #authSwap { color: var(--accent); }
 @media (max-width: 640px) { .top nav { display: none; } .me span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; } }
+
+.codebox { width: 100%; display: flex; justify-content: space-between; align-items: center; background: var(--card); border: 1.5px dashed var(--accent); color: var(--text); border-radius: 12px; padding: 14px 16px; font: 700 20px "Space Grotesk", monospace; cursor: pointer; letter-spacing: .04em; }
+.codebox small { font: 600 13px Inter, sans-serif; color: var(--accent); letter-spacing: 0; }
+.waiting { display: flex; align-items: center; gap: 10px; margin: 16px 0 4px; color: var(--muted); }
+.spin { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: sp 0.8s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }

@@ -302,37 +302,79 @@
   $("#profName").addEventListener("keydown", (e) => { if (e.key === "Enter") renderProfile(); });
 
 
-  // ---------- sign in / sign up (remembers your Minecraft name on this device) ----------
-  function signedIn() { const n = store.get("cs-name"); return n && NAME.test(n) ? n : null; }
+  // ---------- sign in / sign up: verified with a code typed in game ----------
+  // The server signs "code|name|expiry" with its private key; we check it with the public key in config.js.
+  function signedIn() { const n = store.get("cs-auth"); return n && NAME.test(n) ? n : null; }
   function renderAcct() {
     const me = signedIn(), box = $("#acct");
     box.innerHTML = me
       ? `<button type="button" class="me" id="meBtn"><img src="${head(me, 28)}" alt="" width="28" height="28"><span>${esc(me)}</span></button><button type="button" class="btn ghost sm" id="signOut">Sign out</button>`
       : `<button type="button" class="btn ghost sm" data-auth="in">Sign in</button><button type="button" class="btn sm" data-auth="up">Sign up</button>`;
-    if (me) { $("#meBtn").onclick = () => show("profile"); $("#signOut").onclick = () => { try { localStorage.removeItem("cs-name"); } catch (e) {} renderAcct(); toast("Signed out"); }; }
+    if (me) { $("#meBtn").onclick = () => show("profile"); $("#signOut").onclick = () => { try { localStorage.removeItem("cs-auth"); } catch (e) {} renderAcct(); toast("Signed out"); }; }
   }
-  let authMode = "in";
+  let authMode = "in", pollT = null, pollStop = 0, pending = null;
+  function stopPoll() { clearTimeout(pollT); pollT = null; }
+  function authStep(n) { $("#authStep1").hidden = n !== 1; $("#authStep2").hidden = n !== 2; }
   function openAuth(mode) {
-    authMode = mode;
+    authMode = mode; stopPoll(); authStep(1);
     $("#authTitle").textContent = mode === "up" ? "Sign up" : "Sign in";
-    $("#authGo").textContent = mode === "up" ? "Create account" : "Sign in";
     $("#authSwap").textContent = mode === "up" ? "Already signed up? Sign in" : "New here? Sign up";
     $("#authErr").hidden = true; $("#authName").value = ""; $("#authHead").src = "";
     $("#authModal").hidden = false; setTimeout(() => $("#authName").focus(), 50);
   }
+  const closeAuth = () => { stopPoll(); $("#authModal").hidden = true; };
   document.addEventListener("click", (e) => { const b = e.target.closest("[data-auth]"); if (b) openAuth(b.dataset.auth); });
-  $("#authClose").onclick = () => ($("#authModal").hidden = true);
-  $("#authModal").addEventListener("click", (e) => { if (e.target.id === "authModal") $("#authModal").hidden = true; });
+  $("#authClose").onclick = closeAuth;
+  $("#authModal").addEventListener("click", (e) => { if (e.target.id === "authModal") closeAuth(); });
   $("#authSwap").onclick = (e) => { e.preventDefault(); openAuth(authMode === "up" ? "in" : "up"); };
+  $("#authBack").onclick = () => { stopPoll(); authStep(1); };
   let aT;
   $("#authName").addEventListener("input", (e) => { const v = e.target.value.trim(); clearTimeout(aT); aT = setTimeout(() => { $("#authHead").src = NAME.test(v) ? head(v, 48) : ""; }, 350); });
   $("#authName").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#authGo").click(); });
+
+  function newCode() {
+    const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = new Uint32Array(6);
+    crypto.getRandomValues(r); return [...r].map((x) => abc[x % abc.length]).join("");
+  }
   $("#authGo").onclick = () => {
     const v = $("#authName").value.trim();
     if (!NAME.test(v)) { $("#authErr").textContent = "That doesn't look like a Minecraft username (3-16 letters, numbers or _)."; $("#authErr").hidden = false; return; }
-    saveName(v); renderAcct(); $("#authModal").hidden = true;
-    toast((authMode === "up" ? "Welcome, " : "Signed in as ") + v + "!");
+    if (!S.login || !S.login.topic) { $("#authErr").textContent = "Sign in isn't set up yet."; $("#authErr").hidden = false; return; }
+    pending = { name: v, code: newCode() };
+    $("#authCmdText").textContent = "/weblogin " + pending.code;
+    $("#authIp").textContent = S.serverIp;
+    $("#authErr2").hidden = true; $("#authWait").textContent = "Waiting for you to type it in game…";
+    authStep(2); pollStop = Date.now() + 10 * 60 * 1000; poll();
   };
+  $("#authCmd").onclick = () => { navigator.clipboard?.writeText($("#authCmdText").textContent); toast("Copied - paste it in Minecraft chat"); };
+
+  let pubKey = null;
+  async function verifyMsg(m) {
+    if (!pubKey) pubKey = await crypto.subtle.importKey("spki", Uint8Array.from(atob(S.login.publicKey), (c) => c.charCodeAt(0)), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+    const sig = Uint8Array.from(atob(m.s), (c) => c.charCodeAt(0));
+    return crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, pubKey, sig, new TextEncoder().encode(m.c + "|" + m.u + "|" + m.e));
+  }
+  async function poll() {
+    if (!pending || $("#authModal").hidden) return;
+    if (Date.now() > pollStop) { $("#authWait").textContent = "Code expired."; $("#authErr2").textContent = "Press 'Use a different name' to get a new code."; $("#authErr2").hidden = false; return; }
+    try {
+      const txt = await fetch(`https://ntfy.sh/${S.login.topic}/json?poll=1&since=15m`, { cache: "no-store" }).then((r) => r.text());
+      for (const line of txt.split("\n")) {
+        if (!line.trim()) continue;
+        let ev, m; try { ev = JSON.parse(line); m = JSON.parse(ev.message || "{}"); } catch (e) { continue; }
+        if (!m || m.c !== pending.code || !m.s) continue;
+        if (!(await verifyMsg(m))) continue;               // not signed by our server - ignore
+        if (m.e < Date.now() / 1000) continue;             // too old
+        if (m.u.toLowerCase() !== pending.name.toLowerCase()) {
+          $("#authErr2").textContent = "That code was typed by " + m.u + ", not " + pending.name + ". You can only sign in as yourself."; $("#authErr2").hidden = false; continue;
+        }
+        store.set("cs-auth", m.u); saveName(m.u); pending = null; stopPoll();
+        renderAcct(); $("#authModal").hidden = true; toast((authMode === "up" ? "Welcome, " : "Signed in as ") + m.u + "!");
+        return;
+      }
+    } catch (e) { /* network hiccup - try again */ }
+    pollT = setTimeout(poll, 2500);
+  }
   renderAcct();
 
   // back from Tebex username confirmation: add the item and open checkout

@@ -7,8 +7,8 @@
   <meta name="description" content="Buy ranks and crate keys for CratorSMP. Delivered in-game automatically.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=1793759103">
-  <script src="config.js?v=1793759103"></script>
+  <link rel="stylesheet" href="styles.css?v=1793759826">
+  <script src="config.js?v=1793759826"></script>
 </head>
 <body>
   <div class="bg-crystals" aria-hidden="true"></div>
@@ -173,19 +173,29 @@
     <div class="sheet auth" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <button class="x" id="authClose" type="button" aria-label="Close">×</button>
       <h3 id="authTitle">Sign in</h3>
-      <p class="muted" id="authSub">Use your Minecraft username. Your purchases go to this name.</p>
-      <div class="user">
-        <img id="authHead" alt="" src="" width="48" height="48">
-        <input id="authName" type="text" maxlength="17" autocomplete="username" spellcheck="false" placeholder="Minecraft username">
+      <p class="muted" id="authSub">Use your Minecraft username. You'll confirm it's really you with a code in game.</p>
+      <div id="authStep1">
+        <div class="user">
+          <img id="authHead" alt="" src="" width="48" height="48">
+          <input id="authName" type="text" maxlength="17" autocomplete="username" spellcheck="false" placeholder="Minecraft username">
+        </div>
+        <p class="hint">Bedrock players: put a <b>.</b> in front of your name (e.g. <b>.Steve</b>).</p>
+        <p class="err" id="authErr" hidden></p>
+        <button class="btn wide" id="authGo" type="button">Continue</button>
       </div>
-      <p class="hint">Bedrock players: put a <b>.</b> in front of your name (e.g. <b>.Steve</b>).</p>
-      <p class="err" id="authErr" hidden></p>
-      <button class="btn wide" id="authGo" type="button">Sign in</button>
+      <div id="authStep2" hidden>
+        <p class="label">Join the server and type this in chat:</p>
+        <button type="button" class="codebox" id="authCmd"><span id="authCmdText">/weblogin ABC123</span><small>Copy</small></button>
+        <p class="hint">Server: <b id="authIp"></b></p>
+        <div class="waiting"><span class="spin"></span><span id="authWait">Waiting for you to type it in game…</span></div>
+        <p class="err" id="authErr2" hidden></p>
+        <button class="btn ghost wide" id="authBack" type="button">Use a different name</button>
+      </div>
       <p class="hint center"><a href="#" id="authSwap">New here? Sign up</a></p>
     </div>
   </div>
 
   <div class="toast" id="toast" hidden></div>
-  <script src="app.js?v=1793759103"></script>
+  <script src="app.js?v=1793759826"></script>
 </body>
 </html>

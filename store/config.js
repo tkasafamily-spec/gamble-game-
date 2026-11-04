@@ -7,6 +7,12 @@ window.STORE = {
   discord: "",                // e.g. "https://discord.gg/xxxx" (leave "" to hide the button)
   currency: "USD",
 
+  // Website sign-in: players type /weblogin <code> in game. Must match the SMPCore plugin (v209+).
+  login: {
+    topic: "cratorsmp-wl-009cafebbc70a841",
+    publicKey: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZ2q9iMpiGsgAyn2TOp2AUaUOHY97WQxXlITJZMEVJHQKMd9rqAnNP4Bz/Qo1EcFlzNRouAf4gjl6DQMIUF5J3w=="
+  },
+
   // PayPal: players scan the QR / open this link, send the money, then open a Discord ticket with a screenshot.
   paypal: {
     name: "Trevor Price",
