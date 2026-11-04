@@ -163,15 +163,11 @@
     return { ok: r.ok, data: j.data, msg: j.detail || j.message || "Couldn't add item" };
   }
   function launch(ident, d2, d1) {
-    if (window.Tebex && Tebex.checkout) {
-      close();
-      Tebex.checkout.init({ ident, theme: "dark", colors: [{ name: "primary", color: "#b46cff" }] });
-      Tebex.checkout.on("payment:complete", () => showDone("Payment went through!", "Thanks! " + (order.user || "You") + " is getting " + ($("#sItem").textContent || "it") + " in-game now (within a minute). Make sure you're online."));
-      Tebex.checkout.launch();
-    } else {
-      location.href = (d2 && d2.links && d2.links.checkout) || (d1 && d1.links && d1.links.checkout);
-    }
+    // open the secure Tebex checkout as a normal page (pop-ups get blocked by browsers)
+    const url = (d2 && d2.links && d2.links.checkout) || (d1 && d1.links && d1.links.checkout) || ("https://pay.tebex.io/" + ident);
+    location.href = url;
   }
+
 
   // step 3 - pay
   function showDone(title, text) {
