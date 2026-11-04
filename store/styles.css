@@ -289,3 +289,6 @@ body { padding-bottom: 84px; }
 .waiting { display: flex; align-items: center; gap: 10px; margin: 16px 0 4px; color: var(--muted); }
 .spin { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: sp 0.8s linear infinite; }
 @keyframes sp { to { transform: rotate(360deg); } }
+
+.field { width: 100%; margin-top: 10px; background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; color: var(--text); font: 600 17px Inter, sans-serif; padding: 14px; }
+.field:focus { outline: none; border-color: var(--accent); }

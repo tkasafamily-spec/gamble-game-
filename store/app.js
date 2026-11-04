@@ -302,8 +302,9 @@
   $("#profName").addEventListener("keydown", (e) => { if (e.key === "Enter") renderProfile(); });
 
 
-  // ---------- sign in / sign up: verified with a code typed in game ----------
-  // The server signs "code|name|expiry" with its private key; we check it with the public key in config.js.
+  // ---------- sign in / sign up: username + password, checked by the Minecraft server ----------
+  // Request -> encrypted with the server's public key -> ntfy mailbox -> server checks it ->
+  // answer signed by the server -> we check the signature. Nobody can read passwords or fake an answer.
   function signedIn() { const n = store.get("cs-auth"); return n && NAME.test(n) ? n : null; }
   function renderAcct() {
     const me = signedIn(), box = $("#acct");
@@ -312,69 +313,85 @@
       : `<button type="button" class="btn ghost sm" data-auth="in">Sign in</button><button type="button" class="btn sm" data-auth="up">Sign up</button>`;
     if (me) { $("#meBtn").onclick = () => show("profile"); $("#signOut").onclick = () => { try { localStorage.removeItem("cs-auth"); } catch (e) {} renderAcct(); toast("Signed out"); }; }
   }
-  let authMode = "in", pollT = null, pollStop = 0, pending = null;
-  function stopPoll() { clearTimeout(pollT); pollT = null; }
-  function authStep(n) { $("#authStep1").hidden = n !== 1; $("#authStep2").hidden = n !== 2; }
+  let authMode = "in", busy = false;
+  const authErr = (t) => { $("#authErr").textContent = t; $("#authErr").hidden = !t; };
   function openAuth(mode) {
-    authMode = mode; stopPoll(); authStep(1);
-    $("#authTitle").textContent = mode === "up" ? "Sign up" : "Sign in";
-    $("#authSwap").textContent = mode === "up" ? "Already signed up? Sign in" : "New here? Sign up";
-    $("#authErr").hidden = true; $("#authName").value = ""; $("#authHead").src = "";
+    authMode = mode;
+    const up = mode === "up";
+    $("#authTitle").textContent = up ? "Sign up" : "Sign in";
+    $("#authGo").textContent = up ? "Create account" : "Sign in";
+    $("#authSwap").textContent = up ? "Already have an account? Sign in" : "New here? Sign up";
+    $("#authSub").textContent = up ? "Make an account with your Minecraft username and a password." : "Sign in with your Minecraft username and password.";
+    $("#authPass2").hidden = !up;
+    $("#authPass").autocomplete = up ? "new-password" : "current-password";
+    authErr(""); $("#authName").value = ""; $("#authPass").value = ""; $("#authPass2").value = ""; $("#authHead").src = "";
     $("#authModal").hidden = false; setTimeout(() => $("#authName").focus(), 50);
   }
-  const closeAuth = () => { stopPoll(); $("#authModal").hidden = true; };
+  const closeAuth = () => { if (!busy) $("#authModal").hidden = true; };
   document.addEventListener("click", (e) => { const b = e.target.closest("[data-auth]"); if (b) openAuth(b.dataset.auth); });
   $("#authClose").onclick = closeAuth;
   $("#authModal").addEventListener("click", (e) => { if (e.target.id === "authModal") closeAuth(); });
-  $("#authSwap").onclick = (e) => { e.preventDefault(); openAuth(authMode === "up" ? "in" : "up"); };
-  $("#authBack").onclick = () => { stopPoll(); authStep(1); };
+  $("#authSwap").onclick = (e) => { e.preventDefault(); if (!busy) openAuth(authMode === "up" ? "in" : "up"); };
   let aT;
   $("#authName").addEventListener("input", (e) => { const v = e.target.value.trim(); clearTimeout(aT); aT = setTimeout(() => { $("#authHead").src = NAME.test(v) ? head(v, 48) : ""; }, 350); });
-  $("#authName").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#authGo").click(); });
+  ["#authName", "#authPass", "#authPass2"].forEach((q) => $(q).addEventListener("keydown", (e) => { if (e.key === "Enter") $("#authGo").click(); }));
 
-  function newCode() {
-    const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = new Uint32Array(6);
-    crypto.getRandomValues(r); return [...r].map((x) => abc[x % abc.length]).join("");
+  const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  let encKey = null, sigKey = null;
+  async function keys() {
+    if (!encKey) encKey = await crypto.subtle.importKey("spki", unb64(S.login.encryptKey), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
+    if (!sigKey) sigKey = await crypto.subtle.importKey("spki", unb64(S.login.publicKey), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
   }
-  $("#authGo").onclick = () => {
-    const v = $("#authName").value.trim();
-    if (!NAME.test(v)) { $("#authErr").textContent = "That doesn't look like a Minecraft username (3-16 letters, numbers or _)."; $("#authErr").hidden = false; return; }
-    if (!S.login || !S.login.topic) { $("#authErr").textContent = "Sign in isn't set up yet."; $("#authErr").hidden = false; return; }
-    pending = { name: v, code: newCode() };
-    $("#authCmdText").textContent = "/weblogin " + pending.code;
-    $("#authIp").textContent = S.serverIp;
-    $("#authErr2").hidden = true; $("#authWait").textContent = "Waiting for you to type it in game…";
-    authStep(2); pollStop = Date.now() + 10 * 60 * 1000; poll();
+  function askServer(action, name, pass) {
+    return new Promise(async (resolve, reject) => {
+      await keys();
+      const id = Array.from(crypto.getRandomValues(new Uint8Array(12)), (x) => x.toString(36).padStart(2, "0")).join("").replace(/[^a-z0-9]/gi, "").slice(0, 20);
+      const es = new EventSource(`https://ntfy.sh/${S.login.topic}-a/sse`);
+      const done = (fn, v) => { clearTimeout(timer); es.close(); fn(v); };
+      const timer = setTimeout(() => done(reject, new Error("timeout")), 25000);
+      es.onmessage = async (ev) => {
+        try {
+          const outer = JSON.parse(ev.data), m = JSON.parse(outer.message || "{}");
+          if (m.i !== id) return;
+          const ok = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, sigKey, unb64(m.s), new TextEncoder().encode(m.i + "|" + m.r + "|" + m.u));
+          if (ok) done(resolve, m);
+        } catch (e) { /* ignore other messages */ }
+      };
+      es.onopen = async () => {
+        if (es.sent) return; es.sent = true;
+        const body = JSON.stringify({ i: id, a: action, u: name, p: pass, t: Math.floor(Date.now() / 1000) });
+        const ct = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, encKey, new TextEncoder().encode(body));
+        fetch(`https://ntfy.sh/${S.login.topic}-q`, { method: "POST", body: b64(ct) }).catch(() => done(reject, new Error("send")));
+      };
+    });
+  }
+  const RESULTS = {
+    taken: "That username already has an account. Sign in instead.",
+    wrong: "Wrong password. Try again.",
+    noacc: "There's no account with that username yet. Sign up first.",
+    locked: "Too many wrong passwords. Wait 10 minutes and try again.",
+    badpass: "Your password needs to be 6 to 64 characters.",
+    badname: "That doesn't look like a Minecraft username.",
+    old: "Your device's clock looks wrong. Fix the time and try again."
   };
-  $("#authCmd").onclick = () => { navigator.clipboard?.writeText($("#authCmdText").textContent); toast("Copied - paste it in Minecraft chat"); };
-
-  let pubKey = null;
-  async function verifyMsg(m) {
-    if (!pubKey) pubKey = await crypto.subtle.importKey("spki", Uint8Array.from(atob(S.login.publicKey), (c) => c.charCodeAt(0)), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-    const sig = Uint8Array.from(atob(m.s), (c) => c.charCodeAt(0));
-    return crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, pubKey, sig, new TextEncoder().encode(m.c + "|" + m.u + "|" + m.e));
-  }
-  async function poll() {
-    if (!pending || $("#authModal").hidden) return;
-    if (Date.now() > pollStop) { $("#authWait").textContent = "Code expired."; $("#authErr2").textContent = "Press 'Use a different name' to get a new code."; $("#authErr2").hidden = false; return; }
+  $("#authGo").onclick = async () => {
+    if (busy) return;
+    const name = $("#authName").value.trim(), pass = $("#authPass").value, up = authMode === "up";
+    if (!NAME.test(name)) return authErr("That doesn't look like a Minecraft username (3-16 letters, numbers or _).");
+    if (pass.length < 6) return authErr("Your password needs at least 6 characters.");
+    if (up && pass !== $("#authPass2").value) return authErr("The two passwords don't match.");
+    busy = true; authErr(""); const btn = $("#authGo"), label = btn.textContent; btn.disabled = true; btn.textContent = up ? "Creating account…" : "Signing in…";
     try {
-      const txt = await fetch(`https://ntfy.sh/${S.login.topic}/json?poll=1&since=15m`, { cache: "no-store" }).then((r) => r.text());
-      for (const line of txt.split("\n")) {
-        if (!line.trim()) continue;
-        let ev, m; try { ev = JSON.parse(line); m = JSON.parse(ev.message || "{}"); } catch (e) { continue; }
-        if (!m || m.c !== pending.code || !m.s) continue;
-        if (!(await verifyMsg(m))) continue;               // not signed by our server - ignore
-        if (m.e < Date.now() / 1000) continue;             // too old
-        if (m.u.toLowerCase() !== pending.name.toLowerCase()) {
-          $("#authErr2").textContent = "That code was typed by " + m.u + ", not " + pending.name + ". You can only sign in as yourself."; $("#authErr2").hidden = false; continue;
-        }
-        store.set("cs-auth", m.u); saveName(m.u); pending = null; stopPoll();
-        renderAcct(); $("#authModal").hidden = true; toast((authMode === "up" ? "Welcome, " : "Signed in as ") + m.u + "!");
-        return;
-      }
-    } catch (e) { /* network hiccup - try again */ }
-    pollT = setTimeout(poll, 2500);
-  }
+      const m = await askServer(up ? "up" : "in", name, pass);
+      if (m.r === "ok") {
+        store.set("cs-auth", m.u); saveName(m.u); busy = false; $("#authModal").hidden = true; renderAcct();
+        toast((up ? "Account made! Welcome, " : "Signed in as ") + m.u + "!");
+      } else authErr(RESULTS[m.r] || "Something went wrong. Try again.");
+    } catch (e) {
+      authErr("Couldn't reach the server. It might be restarting - try again in a minute.");
+    } finally { busy = false; btn.disabled = false; btn.textContent = label; }
+  };
   renderAcct();
 
   // back from Tebex username confirmation: add the item and open checkout

@@ -7,9 +7,10 @@ window.STORE = {
   discord: "",                // e.g. "https://discord.gg/xxxx" (leave "" to hide the button)
   currency: "USD",
 
-  // Website sign-in: players type /weblogin <code> in game. Must match the SMPCore plugin (v209+).
+  // Website accounts (username + password) are kept on the Minecraft server by SMPCore v210+.
   login: {
-    topic: "cratorsmp-wl-009cafebbc70a841",
+    topic: "cratorsmp-acc-572c43d7bafc27fa",
+    encryptKey: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvu7NHA+V9tmIv9E8clbUtEawa2m2o8yAocWFOHfkuQD7tSwMVMYIu6W1wfV84GNWb3lO8F0GTZKppF9nQ8+QKAYr/pqWbZQKh5nPOHRUzKKyvZh2mE4Z9OEuoGITUVneygbxvu0zscqYow6fMhnwCFxXLJMLdUq1YwVP2ZMlY04M0w5cw1Ydcydioy4Op/ckKwDpmB6X0ksT1E/m9mZCOr3LXVv4dZc87+AlmwQo/nfNSVM+ciZqXrY54py98PtQP71ncMNJaMJePNzhIirbdB2t+rG9nPoaNPBQThzdkbA+9pNXyroCinMcmv9wNa+bFofutE/v0uJeLftjMffVSQIDAQAB",
     publicKey: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZ2q9iMpiGsgAyn2TOp2AUaUOHY97WQxXlITJZMEVJHQKMd9rqAnNP4Bz/Qo1EcFlzNRouAf4gjl6DQMIUF5J3w=="
   },
 
