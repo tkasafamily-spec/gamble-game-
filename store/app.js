@@ -45,20 +45,30 @@
       <button class="btn" data-buy="key:${i}">Buy</button></div>
     </article>`).join("");
 
+  // Tebex won't take an order under this amount, so cheap keys have a minimum number
+  const MIN_ORDER = S.minOrder || 0.77;
+  const minQty = (price) => Math.max(1, Math.ceil(MIN_ORDER / price - 1e-9));
+  const clampQty = (q, price) => Math.max(minQty(price), Math.min(999, q | 0 || 1));
+
   // pick how many keys right on the card
-  const cardQty = (i) => Math.max(1, Math.min(999, +document.querySelector(`.kq[data-k="${i}"] input`).value | 0 || 1));
-  const setCardQty = (i, q) => {
-    q = Math.max(1, Math.min(999, q | 0 || 1));
-    document.querySelector(`.kq[data-k="${i}"] input`).value = q;
-    document.querySelector(`[data-kp="${i}"]`).innerHTML = short(+(S.keys[i].price * q).toFixed(2)) + "<small>" + (q === 1 ? "each" : "for " + q) + "</small>";
+  const cardQty = (i) => clampQty(+document.querySelector(`.kq[data-k="${i}"] input`).value, S.keys[i].price);
+  const setCardQty = (i, q, keepTyping) => {
+    q = clampQty(q, S.keys[i].price);
+    if (!keepTyping) document.querySelector(`.kq[data-k="${i}"] input`).value = q;
+    document.querySelector(`[data-kp="${i}"]`).innerHTML = short(+(S.keys[i].price * q).toFixed(2)) + "<small>for " + q + "</small>";
   };
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-kq],[data-kset]"); if (!b) return;
     const i = +b.parentElement.dataset.k;
     setCardQty(i, b.dataset.kset ? +b.dataset.kset : cardQty(i) + +b.dataset.kq);
   });
-  document.addEventListener("input", (e) => { const w = e.target.closest(".kq"); if (w) setCardQty(+w.dataset.k, +e.target.value); });
-  S.keys.forEach((_, i) => setCardQty(i, 1));
+  document.addEventListener("input", (e) => { const w = e.target.closest(".kq"); if (w) setCardQty(+w.dataset.k, +e.target.value, true); });
+  document.addEventListener("change", (e) => { const w = e.target.closest(".kq"); if (w) setCardQty(+w.dataset.k, +e.target.value); });
+  S.keys.forEach((k, i) => {
+    const b = document.querySelector(`.kq-quick[data-k="${i}"] [data-kset="1"]`);
+    if (b && minQty(k.price) > 1) { b.dataset.kset = minQty(k.price); b.textContent = minQty(k.price); }
+    setCardQty(i, 1);
+  });
 
   $("#freeList").innerHTML = (S.freeStuff || []).map((f) => `<li>${f}</li>`).join("");
 
@@ -104,10 +114,16 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
 
   // amount
-  const setQty = (q) => { order.qty = Math.max(1, Math.min(999, q | 0 || 1)); $("#qty").value = order.qty; refreshPrice(); };
+  const setQty = (q, keepTyping) => {
+    order.qty = order.kind === "key" ? clampQty(q, order.item.price) : 1;
+    if (!keepTyping) $("#qty").value = order.qty;
+    $("#qtyMin").textContent = order.kind === "key" && minQty(order.item.price) > 1 ? "Minimum " + minQty(order.item.price) + " keys (orders must be over " + short(MIN_ORDER) + ")." : "";
+    refreshPrice();
+  };
   $$("[data-q]").forEach((b) => (b.onclick = () => setQty(order.qty + +b.dataset.q)));
   $$("[data-set]").forEach((b) => (b.onclick = () => setQty(+b.dataset.set)));
-  $("#qty").oninput = (e) => setQty(+e.target.value);
+  $("#qty").oninput = (e) => setQty(+e.target.value, true);
+  $("#qty").onchange = (e) => setQty(+e.target.value);
 
   // after the amount: signed in -> straight to pay, otherwise ask for the username
   function toUsername() {
