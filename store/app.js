@@ -302,9 +302,7 @@
   $("#profName").addEventListener("keydown", (e) => { if (e.key === "Enter") renderProfile(); });
 
 
-  // ---------- sign in / sign up: username + password, checked by the Minecraft server ----------
-  // Request -> encrypted with the server's public key -> ntfy mailbox -> server checks it ->
-  // answer signed by the server -> we check the signature. Nobody can read passwords or fake an answer.
+  // ---------- sign in / sign up: username + password (saved in this browser) ----------
   function signedIn() { const n = store.get("cs-auth"); return n && NAME.test(n) ? n : null; }
   function renderAcct() {
     const me = signedIn(), box = $("#acct");
@@ -336,35 +334,23 @@
   $("#authName").addEventListener("input", (e) => { const v = e.target.value.trim(); clearTimeout(aT); aT = setTimeout(() => { $("#authHead").src = NAME.test(v) ? head(v, 48) : ""; }, 350); });
   ["#authName", "#authPass", "#authPass2"].forEach((q) => $(q).addEventListener("keydown", (e) => { if (e.key === "Enter") $("#authGo").click(); }));
 
-  const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
-  const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-  let encKey = null, sigKey = null;
-  async function keys() {
-    if (!encKey) encKey = await crypto.subtle.importKey("spki", unb64(S.login.encryptKey), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
-    if (!sigKey) sigKey = await crypto.subtle.importKey("spki", unb64(S.login.publicKey), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+  // accounts are saved in this browser: username + salted SHA-256 of the password (never the password itself)
+  const accts = () => { try { return JSON.parse(store.get("cs-accounts") || "{}"); } catch (e) { return {}; } };
+  async function hashPw(pass, salt) {
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt + "|" + pass));
+    return Array.from(new Uint8Array(d), (x) => x.toString(16).padStart(2, "0")).join("");
   }
-  function askServer(action, name, pass) {
-    return new Promise(async (resolve, reject) => {
-      await keys();
-      const id = Array.from(crypto.getRandomValues(new Uint8Array(12)), (x) => x.toString(36).padStart(2, "0")).join("").replace(/[^a-z0-9]/gi, "").slice(0, 20);
-      const es = new EventSource(`https://ntfy.sh/${S.login.topic}-a/sse`);
-      const done = (fn, v) => { clearTimeout(timer); es.close(); fn(v); };
-      const timer = setTimeout(() => done(reject, new Error("timeout")), 25000);
-      es.onmessage = async (ev) => {
-        try {
-          const outer = JSON.parse(ev.data), m = JSON.parse(outer.message || "{}");
-          if (m.i !== id) return;
-          const ok = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, sigKey, unb64(m.s), new TextEncoder().encode(m.i + "|" + m.r + "|" + m.u));
-          if (ok) done(resolve, m);
-        } catch (e) { /* ignore other messages */ }
-      };
-      es.onopen = async () => {
-        if (es.sent) return; es.sent = true;
-        const body = JSON.stringify({ i: id, a: action, u: name, p: pass, t: Math.floor(Date.now() / 1000) });
-        const ct = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, encKey, new TextEncoder().encode(body));
-        fetch(`https://ntfy.sh/${S.login.topic}-q`, { method: "POST", body: b64(ct) }).catch(() => done(reject, new Error("send")));
-      };
-    });
+  async function askServer(action, name, pass) {
+    const all = accts(), k = name.toLowerCase();
+    if (action === "up") {
+      if (all[k]) return { r: "taken" };
+      const salt = Array.from(crypto.getRandomValues(new Uint8Array(16)), (x) => x.toString(16).padStart(2, "0")).join("");
+      all[k] = { name, salt, hash: await hashPw(pass, salt) };
+      store.set("cs-accounts", JSON.stringify(all));
+      return { r: "ok", u: name };
+    }
+    if (!all[k]) return { r: "noacc" };
+    return (await hashPw(pass, all[k].salt)) === all[k].hash ? { r: "ok", u: all[k].name } : { r: "wrong" };
   }
   const RESULTS = {
     taken: "That username already has an account. Sign in instead.",
@@ -389,7 +375,7 @@
         toast((up ? "Account made! Welcome, " : "Signed in as ") + m.u + "!");
       } else authErr(RESULTS[m.r] || "Something went wrong. Try again.");
     } catch (e) {
-      authErr("Couldn't reach the server. It might be restarting - try again in a minute.");
+      authErr("Something went wrong. Try again.");
     } finally { busy = false; btn.disabled = false; btn.textContent = label; }
   };
   renderAcct();
